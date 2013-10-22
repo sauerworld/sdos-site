@@ -16,6 +16,7 @@
             [sauerworld.sdos.core :as core]
             [sauerworld.sdos.db :as db]
             [sauerworld.sdos.layout :as layout]
+            [immutant.messaging :as msg]
             [clojure.tools.namespace.repl :refer (refresh refresh-all)]
             [net.cgrand.enlive-html :as html]
             [ring.mock.request :as mr]))
