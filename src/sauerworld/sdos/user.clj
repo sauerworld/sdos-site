@@ -36,8 +36,18 @@ To validate your email address, please click on:</p>
             (map #(str (name k) " " %) v))
           errors))
 
-(defn wrap-validation
-  [h error-view-fn & opts]
+(defn wrap-require-user
+  [h]
+  (fn [req]
+    (if (-> req :session :user)
+      (h req)
+      (layout/error-template (get-settings req)
+                         (str "<p>You need to be logged in for this action.</p>"
+                              "<p><a href=\"/user/login\">Click here to log in."
+                              "</a></p>")))))
+
+(defn wrap-require-validation
+  [h & opts]
   (fn [{:keys [session] :as req}]
     (let [opts-map (apply hash-map opts)
           uri (:uri req)
@@ -47,13 +57,12 @@ To validate your email address, please click on:</p>
                             (-> (re-pattern (str/join "||" excepts))
                                 (re-find uri))))
           validated (-> session :user :validated)]
-      (if exception?
+      (if (or exception? validated)
         (h req)
-        (if validated
-          (h req)
-          (error-view-fn (str "<p>Your email address has not yet been validated.</p>"
-                              "<p><a href=\"/user/validate/resend\">Click here "
-                              "to resend validation email.</a></p>")))))))
+        (layout/error-template (get-settings req)
+                           (str "<p>Your email address has not yet been validated.</p>"
+                                "<p><a href=\"/user/validate/resend\">Click here "
+                                "to resend validation email.</a></p>"))))))
 
 (defn profile-page
   [req]
