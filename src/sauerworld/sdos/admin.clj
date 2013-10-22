@@ -1,7 +1,6 @@
 (ns sauerworld.sdos.admin
   (:require [sauerworld.sdos.settings :refer :all]
-            [sauerworld.sdos.models.articles :as articles]
-            [sauerworld.sdos.models.users :as users]
+            [sauerworld.sdos.api :as api]
             [sauerworld.sdos.views.admin :as view]
             [sauerworld.sdos.layout :as layout]))
 
@@ -15,8 +14,7 @@
 (defn show-articles-summary
   [req]
   (let [db (:db req)
-        articles (-> ((:storage-api req) :articles/find-all-articles)
-                     (deref 1000 nil))
+        articles (api/request :articles/find-all-articles)
         content (view/articles-summary articles)]
     (layout/app-page (get-settings req) content)))
 
@@ -32,9 +30,7 @@
                  :author (:author form)
                  :category (:category form)
                  :content (:content form)}
-        save (->
-              ((:storage-api req) :articles/insert-article article)
-              (deref 1000 nil))
+        save (api/request :articles/insert-article article)
         content (if save
                   "Article inserted successfully."
                   "Article failed to insert properly.")]
@@ -43,9 +39,7 @@
 (defn edit-article-page
   [req]
   (let [id (-> req :params :id)
-        article (->
-                 ((:storage-api req) :articles/find-article id)
-                 (deref 1000 nil))
+        article (api/request :articles/find-article id)
         content (view/article article true)]
     (layout/app-page (get-settings req) content)))
 
@@ -58,8 +52,7 @@
                  :author (:author form)
                  :category (:category form)
                  :content (:content form)}
-        save (-> ((:storage-api req) :articles/update-article article)
-                 (deref 1000 nil))
+        save (api/request :articles/update-article article)
         content (if save
                   "Article edited successfully."
                   "Article failed to edit properly.")]

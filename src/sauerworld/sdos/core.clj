@@ -6,12 +6,12 @@
             [sauerworld.sdos.user :as user]
             [sauerworld.sdos.admin :as admin]
             [sauerworld.sdos.rss :refer (rss)]
+            [sauerworld.sdos.api :refer (start-api)]
             [environ.core :refer (env)]
             [compojure.core :refer :all]
             [compojure.route :refer (not-found) :as route]
             [immutant.web :refer (wrap-resource) :as web]
             [immutant.util :refer (at-exit)]
-            [immutant.messaging :as msg]
             [compojure.handler :refer (site)]))
 
 (def world (atom {}))
@@ -69,13 +69,12 @@
   (context "/user" [] user-routes)
   (not-found "Sorry buddy, page not found!"))
 
-(defn wrap-storage-api
-  [handler api-queue]
+(defn wrap-throwable-errors
+  [handler]
   (fn [req]
-    (assoc req :storage-api
-           (fn [action & params]
-             (msg/request api-queue {:action action
-                                     :params params})))))
+    (try
+      (handler req)
+      (catch Throwable t (page/error-page req t)))))
 
 (defn wrap-smtp-server
   "Adds smtp server params into the request map."
@@ -104,16 +103,13 @@
         smtp-wrap-fn (if (and smtp-host smtp-login smtp-password)
                        (fn [h]
                          (wrap-smtp-server h smtp-params))
-                       identity)
-        api-queue-name "queue/storage"
-        api-handle (msg/start api-queue-name)
-        ]
+                       identity)]
     (do
       (-> app
-          (wrap-storage-api api-queue-name)
           smtp-wrap-fn
+          wrap-throwable-errors
           web/start)
-      (swap! world assoc :api-handle api-handle))))
+      (start-api))))
 
 (defn initialize []
   (start))

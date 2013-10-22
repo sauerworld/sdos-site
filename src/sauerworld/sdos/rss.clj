@@ -1,6 +1,6 @@
 (ns sauerworld.sdos.rss
   (:require [sauerworld.sdos.settings :refer (base-url)]
-            [sauerworld.sdos.models.articles :refer (find-category-articles)]
+            [sauerworld.sdos.api :as api]
             [clj-rss.core :refer (channel-xml)]
             [clj-time.coerce :refer (to-date)]
             [markdown.core :refer (md-to-html-string)]))
@@ -16,8 +16,7 @@
 
 (defn rss
   [req]
-  (let [db (:db req)
-        articles (find-category-articles db "home")]
+  (let [articles (api/request :articles/find-category-articles "home")]
     (apply channel-xml
            {:title "Sauerbraten Day of Sobriety"
             :link base-url

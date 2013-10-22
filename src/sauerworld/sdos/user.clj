@@ -3,7 +3,7 @@
             [sauerworld.sdos.settings :refer :all]
             [sauerworld.sdos.layout :as layout]
             [sauerworld.sdos.views.user :as view]
-            [sauerworld.sdos.models.users :as users]
+            [sauerworld.sdos.api :as api]
             [sauerworld.sdos.email :refer (send-email)]
             [clojure.tools.logging :refer (info)]))
 
@@ -69,9 +69,7 @@ To validate your email address, please click on:</p>
   (do
     (let [username (-> req :params :username)
           password (-> req :params :password)]
-      (if-let [user (->
-                     ((:storage-api req) :users/check-login username password)
-                     (deref 1000 nil))]
+      (if-let [user (api/request :users/check-login username password)]
         (assoc-in redirect-home [:session :user] user)
         (layout/app-page (get-settings req)
                          (view/login-page "Invalid username or password."))))))
@@ -96,20 +94,15 @@ To validate your email address, please click on:</p>
                       :password-confirm password-confirm
                       :email email}
         server (:smtp-server req)
-        validation (->
-                    ((:storage-api req) :users/make-registration-validator
-                        registration)
-                    (deref 1000 nil))]
+        validation (api/request :users/validate-registration registration)]
     (if-not (empty? validation) ;; escapes first
       (layout/app-page (get-settings req)
                        (view/registration-page (assoc registration
                                                  :error
                                                  (error-strings validation))))
       (do
-        ((:storage-api req) :users/insert-user registration)
-        (let [newuser (->
-                       ((:storage-api req) :users/get-by-username username)
-                       (deref 1000 nil))]
+        (api/request :users/insert-user registration)
+        (let [newuser (api/request :users/get-by-username username)]
           (if (send-validation-email server email (:validation_key newuser))
             (layout/app-page (get-settings req)
                              (view/registration-thanks))
@@ -128,9 +121,7 @@ To validate your email address, please click on:</p>
   [req]
   (let [password (-> req :params :password)
         password-confirm (-> req :params :password-confirm)
-        validation (->
-                    ((:storage-api req) :users/validate-password (:params req))
-                    (deref 1000 true))]
+        validation (api/request :users/validate-password (:params req))]
     (if-not (nil? validation)
       ;; validation error case
       (layout/app-page (get-settings req)
@@ -138,9 +129,7 @@ To validate your email address, please click on:</p>
                         {:error (error-strings validation)}))
       ;; validation ok case
       (let [user (-> req :session :user)]
-        (if (->
-             ((:storage-api req) :users/update-password user password)
-             (deref 1000 nil))
+        (if (api/request :users/update-password user password)
           (layout/app-page (get-settings req)
                            (view/success-page))
           (let [error-msg
@@ -176,12 +165,8 @@ To validate your email address, please click on:</p>
 (defn validate-email
   [req]
   (let [submitted-key (-> req :request-params :validation-key)]
-    (if-let [user (->
-                   ((:storage-api req) :users/get-by-validation-key submitted-key)
-                   (deref 1000 nil))]
-      (if (->
-           ((:storage-api req) :users/set-validated user)
-           (deref 1000 nil))
+    (if-let [user (api/request :users/get-by-validation-key submitted-key)]
+      (if (api/request :users/set-validated user)
         (let [session-user (-> req :session :user)
               body (view/success-page (str "Email validated."))]
           (if (= (:id user) (:id session-user))
