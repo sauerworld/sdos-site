@@ -43,19 +43,23 @@
   (GET "/" [] user/profile-page)
   (GET "/login" [] user/login-page)
   (POST "/login" [] user/do-login)
-  (GET "/logout" [] user/do-logout)
   (GET "/register" [] user/registration-page)
   (POST "/register" [] user/do-registration)
-  (GET "/password" [] user/password-page)
-  (POST "/password" [] user/do-password)
-  (GET "/validate/resend" [] user/resend-validation)
   (GET "/validate/:validation-key" [] user/validate-email)
-  (GET "/authkey" [] user/authkey-page)
-  (POST "/authkey" [] user/do-authkey)
-  (GET "/signup" [] user/signup-page)
-  (POST "/signup" [] user/do-signup)
-  (GET "/signup/:id" [] user/show-signup)
-  (POST "/signup/:id" [] user/do-edit-signup))
+  (user/wrap-require-user
+   (routes
+    (GET "/logout" [] user/do-logout)
+    (GET "/password" [] user/password-page)
+    (POST "/password" [] user/do-password)
+    (GET "/validate/resend" [] user/resend-validation)
+    (user/wrap-require-validation
+     (routes
+      (GET "/authkey" [] user/authkey-page)
+      (POST "/authkey" [] user/do-authkey)
+      (GET "/signup" [] user/signup-page)
+      (POST "/signup" [] user/do-signup)
+      (GET "/signup/:id" [] user/show-signup)
+      (POST "/signup/:id" [] user/do-edit-signup))))))
 
 (defroutes app-routes
   (GET "/" [] (page/page "home"))
