@@ -8,7 +8,7 @@
               :dependencies [[org.clojars.jcrossley3/tools.namespace "0.2.4.1"]
                              [org.immutant/immutant "1.0.1"]
                              [ring-mock "0.1.5"]]
-              :immutant {:nrepl-port 40004}}}
+              :immutant {:nrepl-port 0}}}
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [org.clojure/tools.logging "0.2.6"]
                  [clj-time "0.6.0"]
