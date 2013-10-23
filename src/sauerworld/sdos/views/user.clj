@@ -12,7 +12,7 @@
                           ["Password" "********"]
                           ["Email" email]
                           ["Email Validated" (str validated)]
-                          ["Registration Date" (layout/verbose-date-format created)]]]
+                          ["Registration Date" (layout/format-date-time created)]]]
                         [:dt] (html/content title)
                         [:dt] (html/content text)))
 
