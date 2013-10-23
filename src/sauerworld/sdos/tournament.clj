@@ -115,7 +115,7 @@
   (let [settings (get-settings req)
         event-id (-> req :query-params :id)
         user (-> req :session :user)]
-    (if-let [event (request :tournaments-get-events-by-id event-id)]
+    (if-let [event (request :tournaments/get-event-by-id event-id)]
       (let [tournament (request :tournaments/get-tournament-by-event event)]
         (if-not (:registration_open tournament)
           (error-template settings "Event registration is closed for this tournament. You cannot delete your signup.")
