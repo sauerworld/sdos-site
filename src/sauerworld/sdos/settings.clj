@@ -24,7 +24,8 @@
 (def user-links
   [["Profile" "/user/"]
    ["Logout" "/user/logout"]
-   ["Generate Auth Key" "/user/authkey"]])
+   ;;["Generate Auth Key" "/user/authkey"] ;; put this in when it's working
+   ])
 
 (def admin-links
   [["View/Edit Articles" "/admin/"]
