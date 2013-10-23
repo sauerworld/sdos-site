@@ -7,14 +7,14 @@
   [:div#user-profile]
   [{:keys [username email validated timestamp created]}]
 
-  [:dt] (html/clone-for [[title text]
+  [:dl] (html/clone-for [[title text]
                          [["Username" username]
                           ["Password" "********"]
                           ["Email" email]
                           ["Email Validated" (str validated)]
                           ["Registration Date" (layout/format-date-time created)]]]
                         [:dt] (html/content title)
-                        [:dt] (html/content text)))
+                        [:dd] (html/content text)))
 
 (html/defsnippet login-page "templates/user.html"
   [:div#user-login]

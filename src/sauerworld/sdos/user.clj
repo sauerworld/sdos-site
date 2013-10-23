@@ -77,8 +77,8 @@ To validate your email address, please click on:</p>
 
 (defn profile-page
   [req]
-  (let [user (-> req :session :user)
-        profile-snippet (view/user-profile user)]))
+  (let [user (-> req :session :user)]
+    (layout/app-page (get-settings req) (view/user-profile user))))
 
 (defn login-page
   [req]
