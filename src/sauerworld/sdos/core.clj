@@ -13,7 +13,9 @@
             [compojure.response :refer (render)]
             [immutant.web :refer (wrap-resource) :as web]
             [immutant.util :refer (at-exit)]
-            [compojure.handler :refer (site)]))
+            [compojure.handler :refer (site)]
+            [clojure.tools.logging :refer (error)]
+            [clojure.stacktrace :refer (print-cause-trace)]))
 
 (def world (atom {}))
 
@@ -86,8 +88,11 @@
   (fn [req]
     (try
       (handler req)
-      (catch Throwable t (-> (page/error-page req t)
-                             (render req))))))
+      (catch Throwable t
+        (do
+          (error (with-out-str (print-cause-trace t)))
+          (-> (page/error-page req t)
+                (render req)))))))
 
 (defn wrap-smtp-server
   "Adds smtp server params into the request map."
