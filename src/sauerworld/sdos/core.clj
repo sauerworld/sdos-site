@@ -12,6 +12,7 @@
             [compojure.route :refer (not-found) :as route]
             [compojure.response :refer (render)]
             [immutant.web :refer (wrap-resource) :as web]
+            [immutant.web.session :as i-session]
             [immutant.util :refer (at-exit)]
             [compojure.handler :refer (site)]
             [clojure.tools.logging :refer (error)]
@@ -103,7 +104,7 @@
         handler)))
 
 (def app (-> app-routes
-             site
+             (site {:session {:store (i-session/servlet-store)}})
              (wrap-resource "public")))
 
 (def app-repl (-> app-routes
@@ -126,6 +127,8 @@
                          (wrap-smtp-server h smtp-params))
                        identity)]
     (do
+      (i-session/set-session-timeout! 14400)
+      (i-session/set-session-cookie-attributes! :max-age 144000)
       (-> app
           smtp-wrap-fn
           wrap-throwable-errors
