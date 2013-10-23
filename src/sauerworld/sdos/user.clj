@@ -5,6 +5,7 @@
             [sauerworld.sdos.views.user :as view]
             [sauerworld.sdos.api :as api]
             [sauerworld.sdos.email :refer (send-email)]
+            [compojure.response :refer (render)]
             [clojure.tools.logging :refer (info)]))
 
 (defn send-validation-email
@@ -37,32 +38,42 @@ To validate your email address, please click on:</p>
           errors))
 
 (defn wrap-require-user
-  [h]
-  (fn [req]
-    (if (-> req :session :user)
-      (h req)
-      (layout/error-template (get-settings req)
-                         (str "<p>You need to be logged in for this action.</p>"
-                              "<p><a href=\"/user/login\">Click here to log in."
-                              "</a></p>")))))
-
-(defn wrap-require-validation
   [h & opts]
-  (fn [{:keys [session] :as req}]
+  (fn [req]
     (let [opts-map (apply hash-map opts)
           uri (:uri req)
           excepts (:except opts-map)
           exception? (when excepts
-                       (not empty?
-                            (-> (re-pattern (str/join "||" excepts))
-                                (re-find uri))))
-          validated (-> session :user :validated)]
-      (if (or exception? validated)
+                       (not (empty?
+                             (-> (re-pattern (str/join "|" excepts))
+                                 (re-find uri)))))
+          user? (-> req :session :user)]
+      (if (or exception? user?)
         (h req)
-        (layout/error-template (get-settings req)
-                           (str "<p>Your email address has not yet been validated.</p>"
-                                "<p><a href=\"/user/validate/resend\">Click here "
-                                "to resend validation email.</a></p>"))))))
+        (-> (layout/error-template (get-settings req)
+                                   (str "<p>You need to be logged in for this action.</p>"
+                                        "<p><a href=\"/user/login\">Click here to log in."
+                                        "</a></p>"))
+            (render req))))))
+
+(defn wrap-require-validation
+  [h & opts]
+  (fn [req]
+    (let [opts-map (apply hash-map opts)
+          uri (:uri req)
+          excepts (:except opts-map)
+          exception? (when excepts
+                       (not (empty?
+                             (-> (re-pattern (str/join "|" excepts))
+                                 (re-find uri)))))
+          validated? (-> req :session :user :validated)]
+      (if (or exception? validated?)
+        (h req)
+        (-> (layout/error-template (get-settings req)
+                                   (str "<p>Your email address has not yet been validated.</p>"
+                                        "<p><a href=\"/user/validate/resend\">Click here "
+                                        "to resend validation email.</a></p>"))
+            (render req))))))
 
 (defn profile-page
   [req]
@@ -173,20 +184,19 @@ To validate your email address, please click on:</p>
 
 (defn validate-email
   [req]
-  (let [submitted-key (-> req :request-params :validation-key)]
+  (let [settings (get-settings req)
+        submitted-key (-> req :route-params :validation-key)]
     (if-let [user (api/request :users/get-by-validation-key submitted-key)]
-      (if (api/request :users/set-validated user)
+      (do
+        (api/request :users/set-validated user)
         (let [session-user (-> req :session :user)
-              body (view/success-page (str "Email validated."))]
+              body (layout/app-page settings (str "Email validated."))]
           (if (= (:id user) (:id session-user))
             (let [session (:session req)]
               {:session (assoc-in [:session :user :validated] true)
                :body body})
-            body))
-        (layout/error-template (get-settings req)
-                               "Sorry, unable to validate email address at this
-                                time."))
-      (layout/error-template (get-settings req)
+            body)))
+      (layout/error-template settings
                              "Sorry, email validation key not found."))))
 
 (defn authkey-page

@@ -25,5 +25,4 @@
 (defn error-page
   [req message]
   (error-template (get-settings req)
-                  "Sorry, there was an error accessing the database.
-                   Please try again later."))
+                  (str message req)))

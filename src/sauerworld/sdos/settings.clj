@@ -17,12 +17,12 @@
   [["Home" "/"]
    ["About" "/about"]
    ["Events" "/events"]
+   ["Next Tournament & Signup" "/tournaments/next"]
    ;;["Results" "/results"]
    ])
 
 (def user-links
-  [["Sign Up For SDoS" "/user/signup"]
-   ["Profile" "/user/"]
+  [["Profile" "/user/"]
    ["Logout" "/user/logout"]
    ["Generate Auth Key" "/user/authkey"]])
 
@@ -46,16 +46,12 @@
    :user-menu-items user-links
    :admin-menu-items admin-links})
 
-;; todo - have this function handle the modal login/logout and presence of
-;; registration link depending on login status
 (defn get-settings [req]
   (let [logged-in? (not (nil? (-> req :session :user)))
         admin? (true? (-> req :session :user :admin))
         menu-items (if logged-in?
                      links
-                     ;;(conj links login-link registration-link) ;; put back later
-                     links
-                     )]
+                     (conj links login-link registration-link))]
     (merge layout-settings {:logged-in logged-in?
                             :admin admin?
                             :menu-items menu-items})))

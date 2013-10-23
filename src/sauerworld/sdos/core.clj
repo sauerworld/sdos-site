@@ -10,6 +10,7 @@
             [environ.core :refer (env)]
             [compojure.core :refer :all]
             [compojure.route :refer (not-found) :as route]
+            [compojure.response :refer (render)]
             [immutant.web :refer (wrap-resource) :as web]
             [immutant.util :refer (at-exit)]
             [compojure.handler :refer (site)]))
@@ -46,20 +47,18 @@
   (GET "/register" [] user/registration-page)
   (POST "/register" [] user/do-registration)
   (GET "/validate/:validation-key" [] user/validate-email)
-  (user/wrap-require-user
-   (routes
-    (GET "/logout" [] user/do-logout)
-    (GET "/password" [] user/password-page)
-    (POST "/password" [] user/do-password)
-    (GET "/validate/resend" [] user/resend-validation)
-    (user/wrap-require-validation
-     (routes
-      (GET "/authkey" [] user/authkey-page)
-      (POST "/authkey" [] user/do-authkey)
-      (GET "/signup" [] user/signup-page)
-      (POST "/signup" [] user/do-signup)
-      (GET "/signup/:id" [] user/show-signup)
-      (POST "/signup/:id" [] user/do-edit-signup))))))
+  (GET "/logout" [] user/do-logout)
+  (GET "/password" [] user/password-page)
+  (POST "/password" [] user/do-password)
+  (GET "/validate/resend" [] user/resend-validation)
+  (GET "/authkey" [] (user/wrap-require-validation user/authkey-page))
+  (POST "/authkey" [] (user/wrap-require-validation user/do-authkey)))
+
+(defroutes event-routes
+  (GET "/:id/signup" [] t/event-signup)
+  (POST "/:id/signup" [] t/do-event-signup)
+  (POST "/:id/signup/:s-id" [] t/do-edit-signup)
+  (POST "/:id/signup/:s-id/delete" [] t/do-delete-signup))
 
 (defroutes app-routes
   (GET "/" [] (page/page "home"))
@@ -67,10 +66,19 @@
   (GET "/events" [] (page/page "events"))
   (GET "/article/:id" [] page/show-article)
   (GET "/rss" [] rss)
-  (GET "/tournaments/:id" []  t/show-tournament)
+  (GET "/tournaments/next" [] t/show-next-tournament)
+  (GET "/tournaments" [] t/show-tournaments)
+  (GET "/tournaments/:id" [] t/show-tournament)
+  (context "/events" [] (-> event-routes
+                            user/wrap-require-validation
+                            user/wrap-require-user))
   (GET "/test" [] test-request)
   (context "/admin" [] (admin/wrap-require-admin admin-routes))
-  (context "/user" [] user-routes)
+  (context "/user" [] (user/wrap-require-user
+                       user-routes
+                       :except ["login"
+                                "register"
+                                "validate"]))
   (not-found "Sorry buddy, page not found!"))
 
 (defn wrap-throwable-errors
@@ -78,7 +86,8 @@
   (fn [req]
     (try
       (handler req)
-      (catch Throwable t (page/error-page req t)))))
+      (catch Throwable t (-> (page/error-page req t)
+                             (render req))))))
 
 (defn wrap-smtp-server
   "Adds smtp server params into the request map."
@@ -91,6 +100,9 @@
 (def app (-> app-routes
              site
              (wrap-resource "public")))
+
+(def app-repl (-> app-routes
+                  site))
 
 (defn stop []
   nil)

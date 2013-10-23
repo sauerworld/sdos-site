@@ -14,11 +14,22 @@
 (def verbose-date-format
   (formatter "MMMM dd, yyyy"))
 
+(def verbose-time-format
+  (formatter "HH:mm z"))
+
 (defn format-date
   [date]
   (some->> date
            from-date
            (unparse verbose-date-format)))
+
+(defn format-date-time
+  [date]
+  (when-let [date-time (some->> date
+                                from-date)]
+    (str/join " at " ((juxt (partial unparse verbose-date-format)
+                            (partial unparse verbose-time-format))
+                      date-time))))
 
 (defn article-author
   [author date]

@@ -52,3 +52,52 @@
   </form>
 
 </div>
+
+<div id="admin-tournaments-summary">
+
+  <table>
+    <thead>
+      <tr>
+        <th>id</th>
+        <th>Date</th>
+        <th>Name</th>
+        <th>Events</th>
+        <th>Registration Open?</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>January 1, 2013</td>
+        <td>Hello, World</td>
+        <td>Insta 1v1</td>
+        <td>No</td>
+      </tr>
+    </tbody>
+  </table>
+
+</div>
+
+<div id="tournament-page">
+
+  <form method="POST" action="edit">
+
+    <label for="name">Name:</label>
+    <input type="text" name="name" id="name" />
+
+    <label for="date">Date:</label>
+    <input type="text" name="date" id="date" />
+
+    <label for="events">Events:</label>
+    <select multiple="multiple" name="events" id="events">
+      <option value="insta-1v1">Instagib 1v1</option>
+    </select>
+
+    <label for="registration_open">Registration Open:</label>
+    <input type="checkbox" name="registration_open" id="registration_open" />
+
+    <input type="submit" value="Submit" />
+
+  </form>
+
+</div>

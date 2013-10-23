@@ -1,10 +1,60 @@
-<div id="signups">
+<div id="tournaments-summary"
 
-  <div class="mode">
-    <h3>Mode Name</h3>
-    <ul>
-      <li>Participant</li>
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Name</th>
+        <th>Events</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>January 1, 2013</td>
+        <td>Sauerbraten Day of Sobriety: I</td>
+        <td>Insta 1v1, Teamplay 2v2, Efficiency CTF 3v3</td>
+      </tr>
+    </tbody>
+  </table>
+
+</div>
+
+<div id="tournament-view">
+
+  <h3 class="name">Sauerbraten Day of Sobriety: I</h3>
+
+  <div class="event">
+    <h4>Insta 1v1</h4>
+    <ul class="participants">
+      <li>Achille</li>
     </ul>
+    <a href="/signup" class="button">Sign Up For This Event</a>
   </div>
+
+</div>
+
+<div id="signup-form">
+
+  <form method="post">
+
+    <input type="text" placeholder="Team Name" name="team" id="team">
+
+    <p>
+      You are signing up for <span class="event">Insta 1v1</span>
+      in <span class="tournament">Sauerbraten Day of Sobriety: I</span>
+      which will take place on <span class="date">October 27th, 2013.</span>
+    </p>
+
+    <input type="submit" class="button" value="Yes, Sign Me Up">
+
+  </form>
+
+</div>
+
+<div id="delete-button">
+
+  <form method="POST" action="delete">
+    <input type="submit" class="button" value="Delete My Signup" />
+  </form>
 
 </div>
