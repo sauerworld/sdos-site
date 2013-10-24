@@ -1,5 +1,5 @@
 @charset "UTF-8";
-@import url(http://fonts.googleapis.com/css?family=Vollkorn:400,400italic,700,700italic&subset=latin);
+@import url(http://fonts.googleapis.com/css?family=Asap:400,700,400italic,700italic);
 *,
 *:before,
 *:after {
@@ -16,7 +16,7 @@ body {
   color: #120d01;
   padding: 0;
   margin: 0;
-  font-family: "Vollkorn", Palatino, Times;
+  font-family: "Asap", Palatino, Times;
   font-weight: normal;
   font-style: normal;
   line-height: 1;
@@ -1063,7 +1063,7 @@ p {
 
 /* Default header styles */
 h1, h2, h3, h4, h5, h6 {
-  font-family: "Vollkorn", Palatino, Times;
+  font-family: "Asap", Palatino, Times;
   font-weight: bold;
   font-style: normal;
   color: #2a1d01;
