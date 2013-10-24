@@ -193,7 +193,7 @@ To validate your email address, please click on:</p>
               body (layout/app-page settings (str "Email validated."))]
           (if (= (:id user) (:id session-user))
             (let [session (:session req)]
-              {:session (assoc-in [:session :user :validated] true)
+              {:session (assoc-in session [:user :validated] true)
                :body body})
             body)))
       (layout/error-template settings
