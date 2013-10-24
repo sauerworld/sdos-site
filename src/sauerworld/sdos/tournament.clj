@@ -113,10 +113,10 @@
 (defn do-delete-signup
   [req]
   (let [settings (get-settings req)
-        event-id (-> req :query-params :id)
+        event-id (-> req :route-params :id Integer.)
         user (-> req :session :user)]
     (if-let [event (request :tournaments/get-event-by-id event-id)]
-      (let [tournament (request :tournaments/get-tournament-by-event event)]
+      (let [tournament (request :tournaments/get-tournament-for-event event)]
         (if-not (:registration_open tournament)
           (error-template settings "Event registration is closed for this tournament. You cannot delete your signup.")
           (let [signup (->
@@ -124,7 +124,7 @@
                         first)]
             (if-not (= (:id user) (:user signup))
               (error-template settings "You do not have permission to delete this signup.")
-              (if (request :tournaments/delete-registration signup)
-                (app-page settings "Signup deleted.")
-                (error-template settings "Unable to delete signup. Please try again later."))))))
+              (do
+                (request :tournaments/delete-registration signup)
+                (app-page settings "Signup deleted."))))))
       (error-template settings "Unknown event, cannot delete signup."))))
