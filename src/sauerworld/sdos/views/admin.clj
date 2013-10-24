@@ -46,7 +46,7 @@
               identity)
 
   [:#author] (if (:author article)
-               (html/set-attr :value (:title article))
+               (html/set-attr :value (:author article))
                identity)
 
   [:#category] (if (:category article)
