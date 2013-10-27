@@ -20,6 +20,7 @@
                  [markdown-clj "0.9.31"]
                  [korma "0.3.0-RC5"]
                  [org.clojure/java.jdbc "0.3.0-alpha5"]
+                 [sauerworld/cube2.crypto "0.8-SNAPSHOT"]
                  [com.h2database/h2 "1.3.170"]
                  [clojurewerkz/scrypt "1.0.0"]
                  [com.novemberain/validateur "1.5.0"]]

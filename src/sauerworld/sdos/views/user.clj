@@ -86,3 +86,11 @@
   [:p] (if message
          (html/content message)
          identity))
+
+
+(html/defsnippet authkey-page "templates/user.html"
+  [:div#authkey]
+  [user]
+
+  [:h4.warning] (when (:pubkey user)
+                  identity))

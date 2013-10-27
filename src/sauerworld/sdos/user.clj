@@ -5,6 +5,7 @@
             [sauerworld.sdos.views.user :as view]
             [sauerworld.sdos.api :as api]
             [sauerworld.sdos.email :refer (send-email)]
+            [sauerworld.cube2.crypto :as crypto]
             [compojure.response :refer (render)]
             [clojure.tools.logging :refer (info)]))
 
@@ -201,11 +202,25 @@ To validate your email address, please click on:</p>
 
 (defn authkey-page
   [req]
-  "authkey page")
+  (let [user (-> req :session :user)]
+    (layout/app-page (get-settings req) (view/authkey-page user))))
 
 (defn do-authkey
   [req]
-  "do authkey")
+  (let [user (-> req :session :user)
+        privkey (crypto/generate-private-key)
+        pubkey (crypto/get-public-key privkey)
+        cs-string (str "authkey \""
+                       (:username user) "\" \""
+                       privkey
+                       "\" \"sauerworld.org\" \nautoauth 1 \nsaveauthkeys\n")]
+    (api/request :users/add-pubkey user pubkey)
+    (->
+     {:status 200
+      :headers {"Content-Type" "text/plain"
+                "Content-Disposition" "attachment; filename=\"once.cfg\""}
+      :body cs-string}
+     (assoc-in [:session :user] (assoc user :pubkey pubkey)))))
 
 (defn signup-page
   [req]
