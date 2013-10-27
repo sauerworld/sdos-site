@@ -17,7 +17,7 @@
 (defn show-next-tournament
   [req]
   (let [settings (get-settings req)
-        next-t (request :tournaments/get-next-tournament)
+        next-t (request :tournaments/get-current-tournament)
         user (-> req :session :user)]
     (if next-t
       (let [tourney (request :tournaments/get-tournament next-t :events :registrations :users)]
