@@ -4688,7 +4688,9 @@ h3.logo {
   text-align: center; }
 
 ul, ol {
-  list-style-position: inside; }
+  list-style-position: outside;
+  margin: 1em;
+  padding-left: 1em; }
 
 ul {
   list-style-type: square; }
