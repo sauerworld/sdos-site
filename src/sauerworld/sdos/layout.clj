@@ -4,9 +4,15 @@
               [clj-time.format :refer (unparse formatter)]
               [clj-time.coerce :refer (from-date)]
               [clojure.string :as str]
-              [markdown.core :refer (md-to-html-string)]))
+              [markdown.core :refer (md-to-html-string)]
+              [immutant.util :refer (dev-mode?)]))
 
-(auto-reload *ns*)
+(defn dev-setup
+  [ns]
+  (when (dev-mode?)
+    (auto-reload ns)))
+
+(dev-setup *ns*)
 
 (def base-url
   "http://dos.sauerworld.org")

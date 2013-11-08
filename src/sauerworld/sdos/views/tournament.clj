@@ -3,6 +3,8 @@
             [clojure.string :as str]
             [net.cgrand.enlive-html :as html]))
 
+(layout/dev-setup *ns*)
+
 (html/defsnippet tournament "templates/tournament.html"
   [:#tournament-view]
   [tournament & [user]]

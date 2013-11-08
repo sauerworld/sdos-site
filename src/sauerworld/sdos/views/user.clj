@@ -2,6 +2,7 @@
   (:require [net.cgrand.enlive-html :as html]
             [sauerworld.sdos.layout :as layout]))
 
+(layout/dev-setup *ns*)
 
 (html/defsnippet user-profile "templates/user.html"
   [:div#user-profile]

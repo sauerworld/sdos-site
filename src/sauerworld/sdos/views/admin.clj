@@ -2,6 +2,8 @@
   (:require [net.cgrand.enlive-html :as html]
             [sauerworld.sdos.layout :as layout]))
 
+(layout/dev-setup *ns*)
+
 (html/defsnippet articles-summary "templates/admin.html"
   [:div#admin-articles-summary]
   [articles]
