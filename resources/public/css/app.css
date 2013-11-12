@@ -4742,13 +4742,6 @@ footer.row {
 #side-menu .side-nav {
   margin-top: .5em; }
 
-.side-nav li a {
-  background: rgba(0, 0, 0, 0.05);
-  padding: .5em 1em; }
-
-.side-nav li a:hover {
-  background: rgba(0, 0, 0, 0.1); }
-
 div.content h1 {
   font-size: 2.3125em; }
 div.content h2 {
