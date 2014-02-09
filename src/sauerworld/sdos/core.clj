@@ -11,7 +11,7 @@
             [compojure.core :refer :all]
             [compojure.route :refer (not-found) :as route]
             [compojure.response :refer (render)]
-            [immutant.web :refer (wrap-resource) :as web]
+            [immutant.web :as web]
             [immutant.web.session :as i-session]
             [immutant.util :refer (at-exit)]
             [compojure.handler :refer (site)]
@@ -104,8 +104,7 @@
         handler)))
 
 (def app (-> app-routes
-             (site {:session {:store (i-session/servlet-store)}})
-             (wrap-resource "public")))
+             (site {:session {:store (i-session/servlet-store)}})))
 
 (def app-repl (-> app-routes
                   site))
