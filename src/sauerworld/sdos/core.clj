@@ -1,6 +1,6 @@
 (ns sauerworld.sdos.core
   (:require [sauerworld.sdos.settings :refer :all]
-            [sauerworld.sdos.db :refer (create-db)]
+            [sauerworld.sdos.db]
             [sauerworld.sdos.page :as page]
             [sauerworld.sdos.tournament :as t]
             [sauerworld.sdos.user :as user]

@@ -1,7 +1,6 @@
 (ns sauerworld.sdos.page
   (:require [sauerworld.sdos.settings :refer (get-settings)]
-            [sauerworld.sdos.models.articles :refer (find-category-articles
-                                               find-article)]
+            [sauerworld.sdos.models.articles]
             [sauerworld.sdos.layout :refer (main-template error-template)]
             [sauerworld.sdos.api :as api]))
 
