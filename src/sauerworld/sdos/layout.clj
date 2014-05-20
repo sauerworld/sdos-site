@@ -53,9 +53,7 @@
   [:ul [:li html/first-of-type]]
   (html/clone-for [[text url] items]
                   [:li :a] (html/content text)
-                  [:li :a] (html/set-attr :href url))
-
-  [:h5] (when title (html/content title)))
+                  [:li :a] (html/set-attr :href url)))
 
 (defn main-menu
   [settings]
