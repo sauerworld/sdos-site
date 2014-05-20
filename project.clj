@@ -21,8 +21,8 @@
                  [compojure "1.1.6"]
                  [enlive "1.1.5"]
                  [markdown-clj "0.9.41"]
-                 [sqlingvo "0.5.17"]
                  [org.clojure/java.jdbc "0.3.3"]
+                 [ragtime "0.3.7"]
                  [c3p0/c3p0 "0.9.1.2"]
                  [postgresql/postgresql "9.3-1101.jdbc41"]
                  [sauerworld/cube2.crypto "0.9.1-SNAPSHOT"]
@@ -30,4 +30,6 @@
                  [clojurewerkz/scrypt "1.1.0"]
                  [com.novemberain/validateur "1.7.0"]]
   :immutant {:init "sauerworld.sdos.core/initialize"
-             :context-path "/"})
+             :context-path "/"}
+  :ragtime {:migrations ragtime.sql.files/migrations}
+  :plugins [[ragtime/ragtime.lein "0.3.6"]])
