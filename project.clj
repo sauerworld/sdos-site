@@ -1,4 +1,4 @@
-(defproject sauerworld/sdos "0.2.0-SNAPSHOT"
+(defproject sauerworld/sdos "0.3.0-SNAPSHOT"
   :description "A website for the Sauerbraten Day of Sobriety"
   :url "dos.sauerworld.org"
   :license {:name "Eclipse Public License"
