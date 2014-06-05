@@ -6,7 +6,6 @@
   :profiles {:dev
              {:source-paths ["dev"]
               :dependencies [[org.clojars.jcrossley3/tools.namespace "0.2.4.1"]
-                             [org.immutant/immutant "1.1.0"]
                              [ring-mock "0.1.5"]
                              [criterium "0.4.3"]
                              [com.h2database/h2 "1.4.178"]]
@@ -14,6 +13,7 @@
              :test {:dependencies [[com.h2database/h2 "1.4.178"]]}}
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [org.clojure/tools.logging "0.2.6"]
+                 [org.immutant/web "2.x.incremental.131"]
                  [clj-time "0.7.0"]
                  [clj-rss "0.1.3"]
                  [environ "0.4.0"]
@@ -29,7 +29,7 @@
                  [com.h2database/h2 "1.4.178"]
                  [clojurewerkz/scrypt "1.1.0"]
                  [com.novemberain/validateur "1.7.0"]]
-  :immutant {:init "sauerworld.sdos.core/initialize"
-             :context-path "/"}
+  :repositories [["Immutant 2.x incremental builds"
+                  "http://downloads.immutant.org/incremental/"]]
   :ragtime {:migrations ragtime.sql.files/migrations}
   :plugins [[ragtime/ragtime.lein "0.3.6"]])
