@@ -1,5 +1,6 @@
 (ns sauerworld.sdos.config
-  (:require [environ.core :refer (env)]))
+  (:require [environ.core :refer (env)]
+            [sauerworld.sdos.core :as site]))
 
 (def db-spec
   {:classname (:db-classname env)
@@ -8,5 +9,20 @@
    :user (:db-user env)
    :password (:db-password env)})
 
-(def http-server
-  {:port (or (:http-port env) 8080)})
+(def http-server-conf
+  {:port (or (:http-port env) 8080)
+   :path (or (:http-path env) "/")})
+
+(def smtp-conf
+  {:host (:smtp-host env)
+   :login (:smtp-logoin env)
+   :password (:smtp-password env)})
+
+(def app-conf
+  {:handler site/app})
+
+(def site-conf
+  {:db db-spec
+   :smtp smtp-conf
+   :site app-conf
+   :http http-server-conf})
