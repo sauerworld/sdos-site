@@ -1,5 +1,5 @@
-DROP TABLE articles;
-DROP TABLE users;
-DROP TABLE tournaments;
-DROP TABLE events;
-DROP TABLE registrations;
+DROP TABLE articles CASCADE;
+DROP TABLE users CASCADE;
+DROP TABLE tournaments CASCADE;
+DROP TABLE events CASCADE;
+DROP TABLE registrations CASCADE;
