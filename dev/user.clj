@@ -11,7 +11,8 @@
             [compojure.response :refer (render)]
             [postal.core :as mail]
             [environ.core :refer (env)]
-            [sauerworld.sdos.system :refer (site-conf) :as system]
+            [sauerworld.sdos.system :as system]
+            [sauerworld.sdos.config :refer (site-conf)]
             [sauerworld.sdos.core :as core]
             [sauerworld.sdos.db :as db]
             [sauerworld.sdos.layout :as layout]
@@ -27,7 +28,7 @@
 
 (def system nil)
 
-(def init []
+(defn init []
   (alter-var-root #'system (constantly (system/site site-conf))))
 
 (defn start []
@@ -41,6 +42,6 @@
   (init)
   (start))
 
-(defn reset
+(defn reset []
   (stop)
   (refresh :after 'user/go))

@@ -10,7 +10,7 @@
 
   (start [this]
     (println ";; Starting database")
-    (if connection ;; already started
+    (if datasource ;; already started
       (do
         (println ";; Database already started")
         this)
@@ -19,11 +19,11 @@
 
   (stop [this]
     (println ";; Stopping database")
-    (if (not connection) ;; already stopped
+    (if (not datasource) ;; already stopped
       this
       (do
         (try
-          (.close connection)
+          (.close datasource)
           (catch Throwable t
             (log/warn t "Error when stopping database")))
         (assoc this :connection nil)))))
@@ -62,10 +62,10 @@
   (start [this]
     (if handler ;; already started
       this
-      (let [_ (assert (fn? (:handler options))
+      (let [_ (assert (fn? (:handler config))
                       "SdosSite initialization error: Handler is not a function")
             ;; pass this to the handler in :app for deps
-            handler #((:handler options) (assoc % :app this))]
+            handler #((:handler config) (assoc % :app this))]
         (assoc this :handler handler))))
 
   (stop [this]
