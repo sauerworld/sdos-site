@@ -7,7 +7,7 @@ CREATE TABLE articles (
        author         text,
        category       text,
        content        text,
-       PRIMARY_KEY(id)
+       PRIMARY KEY(id)
 );
 
 CREATE INDEX ON articles (category);
@@ -20,8 +20,8 @@ CREATE TABLE users (
        validated      boolean,
        pubkey         text,
        created_date   timestamp,
-       admin          boolean
-       PRIMARY_KEY(id)
+       admin          boolean,
+       PRIMARY KEY(id)
 );
 
 CREATE INDEX ON users (username);
@@ -32,7 +32,7 @@ CREATE TABLE tournaments (
        end_date       timestamp,
        name           text,
        registration_open boolean,
-       PRIMARY_KEY(id)
+       PRIMARY KEY(id)
 );
 
 CREATE INDEX ON tournaments (end_date);
@@ -44,7 +44,7 @@ CREATE TABLE events (
        name           text,
        mode           text,
        team_mode      boolean,
-       PRIMARY_KEY(id)
+       PRIMARY KEY(id)
 );
 
 CREATE INDEX ON events (tournament_id);
@@ -54,8 +54,8 @@ CREATE TABLE registrations (
        event_id       integer REFERENCES events(id),
        user_id        integer REFERENCES users(id),
        team           text,
-       date           timestamp
-       PRIMARY_KEY(id),
+       date           timestamp,
+       PRIMARY KEY(id),
        UNIQUE(user_id, event_id)
 );
 
