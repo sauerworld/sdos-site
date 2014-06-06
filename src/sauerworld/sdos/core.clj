@@ -12,7 +12,6 @@
             [compojure.route :refer (not-found) :as route]
             [compojure.response :refer (render)]
             [immutant.web :as web]
-            [immutant.web.session :as i-session]
             [immutant.util :refer (at-exit)]
             [compojure.handler :refer (site)]
             [clojure.tools.logging :refer (error)]
@@ -104,35 +103,7 @@
         handler)))
 
 (def app (-> app-routes
-             (site {:session {:store (i-session/servlet-store)}})))
+             site))
 
 (def app-repl (-> app-routes
                   site))
-
-(defn stop []
-  nil)
-
-(defn start []
-  (let [smtp-host (:mg-smtp-host env)
-        smtp-login (:mg-smtp-login env)
-        smtp-password (:mg-smtp-password env)
-        smtp-params {:host smtp-host
-                     :user smtp-login
-                     :pass smtp-password
-                     :tls true
-                     :port 587}
-        smtp-wrap-fn (if (and smtp-host smtp-login smtp-password)
-                       (fn [h]
-                         (wrap-smtp-server h smtp-params))
-                       identity)]
-    (do
-      (i-session/set-session-timeout! 14400)
-      (i-session/set-session-cookie-attributes! :max-age 144000)
-      (-> app
-          smtp-wrap-fn
-          wrap-throwable-errors
-          web/start)
-      (start-api))))
-
-(defn initialize []
-  (start))
