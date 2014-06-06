@@ -24,7 +24,8 @@
                  [enlive "1.1.5"]
                  [markdown-clj "0.9.41"]
                  [org.clojure/java.jdbc "0.3.3"]
-                 [ragtime "0.3.7"
+                 ;; do not upgrade ragtime until github issue #34 is resolved
+                 [ragtime "0.3.6"
                   :exclusions [org.clojure/java.jdbc]]
                  [c3p0/c3p0 "0.9.1.2"]
                  [postgresql/postgresql "9.3-1101.jdbc41"]
