@@ -9,6 +9,7 @@
                              [ring-mock "0.1.5"]
                              [criterium "0.4.3"]
                              [com.h2database/h2 "1.4.178"]]
+              :plugins [[lein-environ "0.5.0"]]}
              :test {:dependencies [[com.h2database/h2 "1.4.178"]]}}
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [org.clojure/tools.logging "0.2.6"]
