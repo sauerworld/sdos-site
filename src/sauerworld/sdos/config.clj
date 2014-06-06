@@ -15,7 +15,7 @@
 
 (def smtp-conf
   {:host (:smtp-host env)
-   :login (:smtp-logoin env)
+   :login (:smtp-login env)
    :password (:smtp-password env)
    :port 587
    :tls true})
