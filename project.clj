@@ -17,6 +17,7 @@
                  [org.immutant/web "2.x.incremental.131"]
                  [clj-time "0.7.0"]
                  [clj-rss "0.1.3"]
+                 [camel-snake-kebab "0.1.5"]
                  [environ "0.5.0"]
                  [com.draines/postal "1.11.1"]
                  [liberator "0.11.0"]
@@ -24,6 +25,7 @@
                  [enlive "1.1.5"]
                  [markdown-clj "0.9.41"]
                  [org.clojure/java.jdbc "0.3.3"]
+                 [sqlingvo "0.5.21"]
                  ;; do not upgrade ragtime until github issue #34 is resolved
                  [ragtime "0.3.6"
                   :exclusions [org.clojure/java.jdbc]]
