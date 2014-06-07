@@ -1,6 +1,7 @@
 (ns sauerworld.sdos.admin
   (:require [sauerworld.sdos.settings :refer :all]
             [sauerworld.sdos.api :as api]
+            [sauerworld.sdos.models.articles :as articles]
             [sauerworld.sdos.views.admin :as view]
             [sauerworld.sdos.layout :as layout]))
 
@@ -13,8 +14,8 @@
 
 (defn show-articles-summary
   [req]
-  (let [db (:db req)
-        articles (api/request :articles/find-all-articles)
+  (let [db (:db (:app req))
+        articles (articles/find-all-articles db)
         content (view/articles-summary articles)]
     (layout/app-page (get-settings req) content)))
 
@@ -39,7 +40,7 @@
 (defn edit-article-page
   [req]
   (let [id (-> req :params :id)
-        article (api/request :articles/find-article id)
+        article (articles/find-article (get-in req [:app :db]) id)
         content (view/article article true)]
     (layout/app-page (get-settings req) content)))
 
@@ -52,7 +53,7 @@
                  :author (:author form)
                  :category (:category form)
                  :content (:content form)}
-        save (api/request :articles/update-article article)
+        save (article/update-article (get-in req [:app :db]) article)
         content (if save
                   "Article edited successfully."
                   "Article failed to edit properly.")]

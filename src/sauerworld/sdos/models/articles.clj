@@ -1,56 +1,57 @@
 (ns sauerworld.sdos.models.articles
-  (:require [clj-time.coerce :refer (to-date)]
+  (:require [clj-time.coerce :as tc]
             [clj-time.core :refer (now)]
-            [sauerworld.sdos.utils :refer :all]))
+            [clojure.java.jdbc :as jdbc]
+            [sauerworld.sdos.utils :as utils]
+            [sqlingvo.core :refer (sql) :as sql]))
 
+(defn find-category-articles
+  "Find all articles by category."
+  [db category]
+  (jdbc/execute! db
+                 (sql
+                  (sql/select [*]
+                    (sql/from :articles)
+                    (sql/where '(= :category category))))))
 
+(defn find-all-articles
+  [db]
+  (jdbc/execute! db
+                 (sql
+                  (sql/select [*]
+                    (sql/from :articles)))))
 
-(comment
-  (defn base-articles-query
-    [db]
-    (-> (k/create-entity "articles")
-        (k/database db)))
+(defn find-article
+  "Find single article by id."
+  [db article-id]
+  (->
+   (jdbc/execute! db
+                 (sql
+                  (sql/select [*]
+                    (sql/from :articles)
+                    (sql/limit 1)
+                    (sql/where '(= :id article-id)))))
+   first))
 
-  (defn insert-article
-    [db {:keys [date title author content category]}]
-    (let [date (or date (to-date (now)))
-          article {:date date
-                   :title title
-                   :author author
-                   :content content
-                   :category category}]
-      (-> (base-articles-query db)
-          (k/insert (k/values article)))))
+(defn add-article
+  "Inserts an article."
+  [db article]
+  (jdbc/execute! db
+                 (sql
+                  (sql/insert :articles []
+                    (sql/values
+                     (-> article
+                         (cond-> :created-date
+                                 (update-in :created-date tc/to-date)
+                                 (complement :created-date)
+                                 (assoc :created-date (java.util.Date.))
+                                 :published-date (tc/to-date))
+                         utils/to-underscore-keys))))))
 
-  (defn update-article
-    [db {:keys [id date title author content category]}]
-    (when id
-      (let [fields (-> {}
-                       (assoc-if date "DATE" date)
-                       (assoc-if title "TITLE" title)
-                       (assoc-if author "AUTHOR" author)
-                       (assoc-if content "CONTENT" content)
-                       (assoc-if category "CATEGORY" category))]
-        (-> (base-articles-query db)
-            (k/update
-             (k/set-fields
-              fields)
-             (k/where {:id id}))))))
-
-  (defn find-all-articles
-    [db]
-    (-> (base-articles-query db)
-        (k/select (k/order :id :DESC))))
-
-  (defn find-article
-    [db id]
-    (-> (base-articles-query db)
-        (k/select (k/where {:id id}))
-        (first)))
-
-  (defn find-category-articles
-    [db cat]
-    (-> (base-articles-query db)
-        (k/select (k/where {:category cat})
-                  (k/order :id :DESC))))
-  )
+(defn update-article
+  "Updates an article."
+  [db article]
+  (jdbc/execute! db
+                 (sql
+                  (sql/update :articles (dissoc article :id)
+                    (sql/where '(= :id (:id article)))))))
