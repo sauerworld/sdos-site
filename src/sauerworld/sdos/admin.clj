@@ -1,7 +1,8 @@
 (ns sauerworld.sdos.admin
   (:require [sauerworld.sdos.settings :refer :all]
             [sauerworld.sdos.api :as api]
-            [sauerworld.sdos.models.articles :as articles]
+            [sauerworld.sdos.model :as model]
+            [sauerworld.sdos.models.articles :refer (article) :as articles]
             [sauerworld.sdos.views.admin :as view]
             [sauerworld.sdos.layout :as layout]))
 
@@ -27,11 +28,11 @@
 (defn do-create-article
   [req]
   (let [form (:params req)
-        article {:title (:title form)
-                 :author (:author form)
-                 :category (:category form)
-                 :content (:content form)}
-        save (api/request :articles/insert-article article)
+        art {:title (:title form)
+             :author (:author form)
+             :category (:category form)
+             :content (:content form)}
+        save (model/save (article art) (:db (:app req)))
         content (if save
                   "Article inserted successfully."
                   "Article failed to insert properly.")]
@@ -40,20 +41,20 @@
 (defn edit-article-page
   [req]
   (let [id (-> req :params :id)
-        article (articles/find-article (get-in req [:app :db]) id)
-        content (view/article article true)]
+        art (model/read (article id) (:db (:app req)))
+        content (view/article art true)]
     (layout/app-page (get-settings req) content)))
 
 (defn do-edit-article
   [req]
   (let [form (:params req)
-        article {:id (:id form)
-                 :date (:date form)
-                 :title (:title form)
-                 :author (:author form)
-                 :category (:category form)
-                 :content (:content form)}
-        save (article/update-article (get-in req [:app :db]) article)
+        art {:id (:id form)
+             :date (:date form)
+             :title (:title form)
+             :author (:author form)
+             :category (:category form)
+             :content (:content form)}
+        save (model/update (article art) (:db (:app req)))
         content (if save
                   "Article edited successfully."
                   "Article failed to edit properly.")]
