@@ -16,3 +16,23 @@
 (defn to-underscore-keys
   [m]
   (map-keys csk/->snake_case m))
+
+(defn to-dashed-keys
+  [m]
+  (map-keys csk/->kebab-case m))
+
+(defn convert-map-vals
+  "m is a map to convert. spec is a map of key -> val-fn. If key is a vector,
+   refers to nested map keys."
+  [m spec]
+  (reduce (fn [m [k f]]
+            (let [contains-key?
+                  (cond (coll? k)
+                        (contains? (get-in m (drop-last k)) (last k))
+                        :default (contains? m k))
+                  update-key (cond-> k (complement coll?) [k])]
+              (if contains-key?
+                (update-in m update-key f)
+                m)))
+          m
+          spec))
