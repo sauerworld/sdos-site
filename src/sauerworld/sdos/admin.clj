@@ -32,7 +32,7 @@
              :author (:author form)
              :category (:category form)
              :content (:content form)}
-        save (model/save (article art) (:db (:app req)))
+        save (model/create (article art) (:db (:app req)))
         content (if save
                   "Article inserted successfully."
                   "Article failed to insert properly.")]
