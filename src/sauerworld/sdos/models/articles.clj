@@ -37,7 +37,7 @@
                      (sql/select [*]
                        (sql/from :articles)
                        (sql/limit 1)
-                       (sql/where '(= :id article-id)))))
+                       (sql/where '(= :id id)))))
      first
      (model/->record key-spec ->article-val-spec true)
      (->> (merge this))))
@@ -48,12 +48,12 @@
                           (-> this
                               (model/->db key-spec ->db-val-spec)
                               (dissoc :id))
-                        (sql/where '(= :id (:id this)))))))
+                        (sql/where '(= :id id))))))
   (delete [this db]
     (jdbc/execute! db
                    (sql
                     (sql/delete :articles
-                      (sql/where '(= :id (:id this))))))))
+                      (sql/where '(= :id id)))))))
 
 (defn article
   "Creates an Article record, either from a map or an id."
