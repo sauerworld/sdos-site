@@ -32,6 +32,10 @@
   "Spec to convert db row vals to User."
   {:created-date tc/to-date-time})
 
+(def ^{:private true} select-base
+  (sql/select [*]
+    (sql/from :users)))
+
 (defrecord User
     [id username password
      validation-key validated? pubkey
@@ -47,14 +51,15 @@
   (read [this db]
     {:pre [(or id username validation-key)]}
     ;; uses id, username or validation-key
-    (let [query (sql (sql/select [*]
-                       (sql/from :users)
-                       (sql/limit 1)
-                       (sql/where
-                        (cond
-                         id '(= :id id)
-                         username '(= :username username)
-                         validation-key '(= :validation_key validation-key)))))]
+    (let [query (-> select-base
+                    (sql/compose
+                     (sql/limit 1)
+                     (sql/where
+                      (cond
+                       id '(= :id id)
+                       username '(= :username username)
+                       validation-key '(= :validation_key validation-key))))
+                    sql)]
       (some-> (jdbc/execute! db query)
               first
               (model/->record key-spec ->user-val-spec true)
@@ -106,8 +111,14 @@
 
 (defn find-all-users
   [db]
+  (some->> (sql select-base)
+           (jdbc/execute! db)
+           (map db->user)))
+
+(defn find-users-by-ids
+  [db ids]
   (some->> (sql
-            (sql/select [*]
-              (sql/from :users)))
+            (sql/compose select-base
+                         (sql/where (list :in :id (seq ids)))))
            (jdbc/execute! db)
            (map db->user)))
