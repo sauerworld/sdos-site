@@ -2,6 +2,7 @@
   (:require [clj-time.core :refer (now)]
             [clj-time.coerce :as tc]
             [sauerworld.sdos.model :as model]
+            [sauerworld.sdos.models.users :as users]
             [sqlingvo.core :refer (sql) :as sql]
             [clojure.java.jdbc :as jdbc]))
 
@@ -78,6 +79,15 @@
   (map->Tournament (model/->record result tournament-key-spec
                                    ->tournament-val-spec true)))
 
+(defn find-tournaments-by-ids
+  [db ids]
+  (some->> (sql
+            (sql/select [*]
+              (sql/from :tournaments)
+              (sql/where (list :in :id (seq ids)))))
+           (jdbc/execute! db)
+           (map db->tournament)))
+
 (def ^{:private true} event-key-spec
   {:team-mode? :team-mode})
 
@@ -142,6 +152,33 @@
   [result]
   (map->Event (model/->record result event-key-spec
                               ->event-val-spec true)))
+
+(defn find-events-by-ids
+  [db ids]
+  (some->> (sql
+            (sql/select [*]
+              (sql/from :events)
+              (sql/where (list :in :id (seq ids)))))
+           (jdbc/execute! db)
+           (map db->event)))
+
+(defn find-events-by-tournaments
+  [db tournaments-or-ids]
+  {:pre [(or (integer? tournaments-or-ids) (coll? tournaments-or-ids))]}
+  (let [tournament-ids (cond
+                        (integer? tournaments-or-ids)
+                        [tournaments-or-ids]
+                        (map? tournaments-or-ids)
+                        [(:id tournaments-or-ids)]
+                        (map? (first tournaments-or-ids))
+                        (map :id tournaments-or-ids)
+                        :else tournaments-or-ids)]
+    (some->> (sql
+              (sql/select [*]
+                (sql/from :events)
+                (sql/where (list :in :tournament_id (seq tournament-ids)))))
+             (jdbc/execute! db)
+             (map db->event))))
 
 (def ^{:private true} registration-key-spec
   {})
@@ -210,6 +247,89 @@
                        {:id registration-or-id}
                        registration-or-id)))
 
+(defn db->registration
+  [result]
+  (map->Registration (model/->record result registration-key-spec
+                                     ->registration-val-spec true)))
+
+(defn find-registrations-by-ids
+  [db ids]
+  (some->> (sql
+            (sql/select [*]
+              (sql/from :registrations)
+              (sql/where (list :in :id (seq ids)))))
+           (jdbc/execute! db)
+           (map db->registration)))
+
+(defn find-registrations-by-events
+  "Pass a db and any of:
+     Event id
+     Event
+     collection of Events
+     collection of Event ids"
+  [db events-or-ids]
+  {:pre [(or (coll? events-or-ids) (integer? events-or-ids))]}
+  (let [event-ids (cond (map? events-or-ids)
+                        [(:id events-or-ids)]
+                        (integer? events-or-ids)
+                        [events-or-ids]
+                        (map? (first events-or-ids))
+                        (map :id events-or-ids)
+                        :else
+                        events-or-ids)]
+    (some->> (sql
+              (sql/select [*]
+                (sql/from :registrations)
+                (sql/where (list :in :event_id (seq event-ids)))))
+             (jdbc/execute! db)
+             (map db->registration))))
+
+;;;
+;;; Higher-level functions, creating nested relations
+;;;
+
+(defn nested-find-registrations
+  [db event-or-events & subrecords]
+  {:pre [(coll? event-or-events)]}
+  (let [registrations (find-registrations-by-events db event-or-events)]
+    (if (contains? (set subrecords) :user)
+      (let [users-by-id (->> (set (map :user-id registrations))
+                             (users/find-users-by-ids db)
+                             (map (fn [u] [(:id u) u]))
+                             (into {}))]
+        (map (fn [r] (assoc r :user (get users-by-id (:user-id r))))
+             registrations))
+      registrations)))
+
+(defn nested-find-events
+  [db tournament-or-tournaments & subrecords]
+  {:pre [(coll? tournament-or-tournaments)]}
+  (let [events (find-events-by-tournaments db tournament-or-tournaments)]
+    (if (contains? (set subrecords) :registration)
+      (let [registrations-by-event-id (->> (apply nested-find-registrations
+                                                  db events subrecords)
+                                           (group-by :event-id))]
+        (map (fn [e] (assoc e :registration (get registrations-by-event-id (:id e))))
+             events))
+      events)))
+
+(defn nested-find-tournaments
+  [db tournaments-or-ids & subrecords]
+  {:pre [(or (coll? tournaments-or-ids) (integer? tournaments-or-ids))]}
+  (let [tournaments (cond
+                     (integer? tournaments-or-ids)
+                     [(model/read (tournament tournaments-or-ids) db)]
+                     (map? tournaments-or-ids) [tournaments-or-ids]
+                     (map? (first (tournaments-or-ids))) tournaments-or-ids
+                     :else (find-tournaments-by-ids db tournaments-or-ids))]
+    (if (contains? (set subrecords) :event)
+      (let [events-by-tourney-id (->> (apply nested-find-events
+                                             db tournaments subrecords)
+                                      (group-by :tournament-id))]
+        (map (fn [t] (assoc t :event (get events-by-tourney-id (:id t))))
+             tournaments))
+      tournaments)))
+
 (comment
 
   (defn get-next-tournament
@@ -220,44 +340,4 @@
            (k/where {:date [> date]})
            (k/order :date :asc))
           first)))
-
-  (defn get-tournaments
-    [db]
-    (-> (base-tournaments-query db)
-        (k/select)))
-
-  (defn get-tournament-events
-    [db tournament]
-    {:pre [(number? (:id tournament))]}
-    (let [id (:id tournament)]
-      (-> (base-events-query db)
-          (k/select
-           (k/where {:tournament id})))))
-
-  (defn get-event-signups
-    [db event]
-    {:pre [(number? (:id event))]}
-    (let [id (:id event)]
-      (-> (base-registrations-query db)
-          (k/select
-           (k/where {:event id})))))
-
-  (defn get-tournament-signups
-    [db tournament]
-    (let [id (if (number? tournament)
-               (int tournament)
-               (-> tournament :id int))
-          events (get-tournament-events db id)
-
-          ]
-      (-> (base-registrations-query db)
-          (k/select
-           (k/join :inner
-                   (k/create-entity "events")
-                   (= :events.id :event))
-           (k/join (k/create-entity "users")
-                   (= :users.id :user))
-           (k/where {:events.tournament id})))))
-
-
   )
