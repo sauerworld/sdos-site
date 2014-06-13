@@ -19,6 +19,10 @@
   {:start-date tc/to-date-time
    :end-date tc/to-date-time})
 
+(def ^{:private true} select-tournament-base
+  (sql/select [*]
+    (sql/from :tournaments)))
+
 (defrecord Tournament
     [id name start-date end-date registration-open?]
 
@@ -34,14 +38,14 @@
   (read [this db]
     {:pre [(or id (:date this))]}
     ;; uses id or date (queries between start-date and end-date
-    (let [query (sql
-                 (sql/select [*]
-                   (sql/from :tournaments)
-                   (sql/limit 1)
-                   (sql/where
-                    (cond
-                     id '(= :id id)
-                     (:date this) '(> :end_date (:date this) :start_date)))))]
+    (let [query (-> select-tournament-base
+                    (sql/compose
+                     (sql/limit 1)
+                     (sql/where
+                      (cond
+                       id '(= :id id)
+                       (:date this) '(> :end_date (:date this) :start_date))))
+                    sql)]
       (some-> (jdbc/execute! db query)
               first
               (model/->record tournament-key-spec ->tournament-val-spec true)
@@ -82,11 +86,24 @@
 (defn find-tournaments-by-ids
   [db ids]
   (some->> (sql
-            (sql/select [*]
-              (sql/from :tournaments)
-              (sql/where (list :in :id (seq ids)))))
+            (sql/compose select-tournament-base
+                         (sql/where (list :in :id (seq ids)))))
            (jdbc/execute! db)
            (map db->tournament)))
+
+(defn find-next-tournament
+  [db & [time]]
+  (let [time (or (some-> time tc/to-date)
+                 (java.util.Date.))]
+    (-> select-tournament-base
+        (sql/compose
+         (sql/where (list > :start_date time))
+         (sql/order-by (sql/desc :start_date))
+         (sql/limit 1))
+        sql
+        (->> (jdbc/execute! db))
+        first
+        db->tournament)))
 
 (def ^{:private true} event-key-spec
   {:team-mode? :team-mode})
@@ -329,15 +346,3 @@
         (map (fn [t] (assoc t :event (get events-by-tourney-id (:id t))))
              tournaments))
       tournaments)))
-
-(comment
-
-  (defn get-next-tournament
-    [db & [date]]
-    (let [date (to-date (or date (now)))]
-      (-> (base-tournaments-query db)
-          (k/select
-           (k/where {:date [> date]})
-           (k/order :date :asc))
-          first)))
-  )
