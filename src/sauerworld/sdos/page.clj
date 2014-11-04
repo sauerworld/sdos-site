@@ -2,8 +2,7 @@
   (:require [sauerworld.sdos.settings :refer (get-settings)]
             [sauerworld.sdos.models.articles :refer (article) :as articles]
             [sauerworld.sdos.model :as model]
-            [sauerworld.sdos.layout :refer (main-template error-template)]
-            [sauerworld.sdos.api :as api]))
+            [sauerworld.sdos.layout :refer (main-template error-template)]))
 
 (defn page
   [category]

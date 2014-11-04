@@ -6,7 +6,6 @@
             [sauerworld.sdos.user :as user]
             [sauerworld.sdos.admin :as admin]
             [sauerworld.sdos.rss :refer (rss)]
-            [sauerworld.sdos.api :refer (start-api)]
             [environ.core :refer (env)]
             [compojure.core :refer :all]
             [compojure.route :refer (not-found) :as route]

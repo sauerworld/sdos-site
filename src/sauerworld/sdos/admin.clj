@@ -1,6 +1,5 @@
 (ns sauerworld.sdos.admin
   (:require [sauerworld.sdos.settings :refer :all]
-            [sauerworld.sdos.api :as api]
             [sauerworld.sdos.model :as model]
             [sauerworld.sdos.models.articles :refer (article) :as articles]
             [sauerworld.sdos.views.admin :as view]

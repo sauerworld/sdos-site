@@ -16,7 +16,6 @@
             [sauerworld.sdos.core :as core]
             [sauerworld.sdos.db :as db]
             [sauerworld.sdos.layout :as layout]
-            [sauerworld.sdos.api :refer (request)]
             [com.stuartsierra.component :as component]
             [clojure.tools.namespace.repl :refer (refresh refresh-all)]
             [net.cgrand.enlive-html :as html]
