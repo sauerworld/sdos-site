@@ -8,7 +8,7 @@
   [category]
   (fn [req]
     (let [articles (articles/find-category-articles (get-in req [:app :db])
-                                                    "category")
+                                                    category)
           settings (get-settings req)]
       (main-template settings articles))))
 
