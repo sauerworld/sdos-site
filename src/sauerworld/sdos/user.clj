@@ -208,8 +208,8 @@ To validate your email address, please click on:</p>
 (defn do-authkey
   [req]
   (let [user (-> req :session :user)
-        privkey (crypto/generate-private-key)
-        pubkey (crypto/get-public-key privkey)
+        privkey (crypto/make-privkey)
+        pubkey (crypto/get-pubkey privkey)
         cs-string (str "authkey \""
                        (:username user) "\" \""
                        privkey
