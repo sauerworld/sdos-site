@@ -14,7 +14,7 @@
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [org.clojure/tools.logging "0.2.6"]
                  [com.stuartsierra/component "0.2.1"]
-                 [org.immutant/web "2.x.incremental.131"]
+                 [org.immutant/web "2.0.0-alpha2"]
                  [clj-time "0.7.0"]
                  [clj-rss "0.1.3"]
                  [camel-snake-kebab "0.1.5"]
@@ -35,7 +35,5 @@
                  [com.h2database/h2 "1.4.178"]
                  [clojurewerkz/scrypt "1.1.0"]
                  [com.novemberain/validateur "1.7.0"]]
-  :repositories [["Immutant 2.x incremental builds"
-                  "http://downloads.immutant.org/incremental/"]]
   :ragtime {:migrations ragtime.sql.files/migrations}
   :plugins [[ragtime/ragtime.lein "0.3.6"]])
