@@ -31,7 +31,7 @@
                   :exclusions [org.clojure/java.jdbc]]
                  [c3p0/c3p0 "0.9.1.2"]
                  [postgresql/postgresql "9.3-1101.jdbc41"]
-                 [sauerworld/cube2.crypto "0.9.1-SNAPSHOT"]
+                 [sauerworld/cube2.crypto "1.0.0"]
                  [com.h2database/h2 "1.4.178"]
                  [clojurewerkz/scrypt "1.1.0"]
                  [com.novemberain/validateur "1.7.0"]]
