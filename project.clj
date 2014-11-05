@@ -25,7 +25,8 @@
                  [enlive "1.1.5"]
                  [markdown-clj "0.9.41"]
                  [org.clojure/java.jdbc "0.3.3"]
-                 [sqlingvo "0.5.21"]
+                 [sqlingvo "0.5.21"] ;; phasing out because sad
+                 [honeysql "0.4.3"]
                  ;; do not upgrade ragtime until github issue #34 is resolved
                  [ragtime "0.3.6"
                   :exclusions [org.clojure/java.jdbc]]
