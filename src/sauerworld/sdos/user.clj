@@ -4,6 +4,7 @@
             [sauerworld.sdos.layout :as layout]
             [sauerworld.sdos.views.user :as view]
             [sauerworld.sdos.api :as api]
+            [sauerworld.sdos.models.users :as users]
             [sauerworld.sdos.email :refer (send-email)]
             [sauerworld.cube2.crypto :as crypto]
             [compojure.response :refer (render)]
@@ -90,7 +91,7 @@ To validate your email address, please click on:</p>
   (do
     (let [username (-> req :params :username)
           password (-> req :params :password)]
-      (if-let [user (api/request :users/check-login username password)]
+      (if-let [user (users/check-login (get-in req [:app :db]) api/request :users/check-login username password)]
         (assoc-in redirect-home [:session :user] user)
         (layout/app-page (get-settings req)
                          (view/login-page "Invalid username or password."))))))

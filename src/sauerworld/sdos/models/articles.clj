@@ -3,7 +3,7 @@
             [clj-time.core :refer (now)]
             [clojure.java.jdbc :as jdbc]
             [sauerworld.sdos.model :as model]
-            [sqlingvo.core :refer (sql) :as sql]))
+            [honeysql.core :as sql]))
 
 (def ^{:private true} key-spec
   "Spec to convert Article keys to db row."
@@ -19,74 +19,78 @@
   {:created-date tc/to-date-time
    :published-date tc/to-date-time})
 
-(defrecord Article
-    [id created-date published-date published?
-     category title author content]
+(def ^{:private true} select-base
+  {:select [*]
+   :from :articles})
 
-  model/DatabaseRecord
-  (create [this db]
-    (jdbc/execute! db
-                   (sql
-                    (sql/insert :articles []
-                      (sql/values
-                       (model/->db this key-spec ->db-val-spec))))))
-  (read [this db]
-    (some->
-     (jdbc/execute! db
-                    (sql
-                     (sql/select [*]
-                       (sql/from :articles)
-                       (sql/limit 1)
-                       (sql/where '(= :id id)))))
-     first
-     (model/->record key-spec ->article-val-spec true)
-     (->> (merge this))))
-  (update [this db]
-      (jdbc/execute! db
-                     (sql
-                      (sql/update :articles
-                          (-> this
-                              (model/->db key-spec ->db-val-spec)
-                              (dissoc :id))
-                        (sql/where '(= :id id))))))
-  (delete [this db]
-    (jdbc/execute! db
-                   (sql
-                    (sql/delete :articles
-                      (sql/where '(= :id id)))))))
+;; Articles have the following fields:
+;; id created-date published-date published? category title author content
 
-(defn article
-  "Creates an Article record, either from a map or an id."
-  [article-or-id]
-  {:pre [(or (and (integer? article-or-id)
-                  (pos? article-or-id))
-             (map? article-or-id))]}
-  (if (integer? article-or-id)
-    (map->Article {:id article-or-id})
-    (-> article-or-id
-        (cond->
-         (not (contains? article-or-id :created-date))
-         (assoc :created-date (now)))
-        map->Article)))
+(defn article->db
+  [article]
+  (-> article
+      (cond->
+       (not (contains? article :created-date))
+       (assoc :created-date (now)))
+      (model/->db key-spec ->db-val-spec)))
 
 (defn db->article
   [result]
-  (map->Article (model/->record result key-spec ->article-val-spec true)))
+  (model/->record result key-spec ->article-val-spec true))
 
-(defn find-category-articles
-  "Find all articles by category."
+(defn create
+  [db article]
+  (jdbc/execute! db
+                 (sql/format
+                  {:insert-into :articles
+                   :values [(article->db article)]})))
+
+(defn get-by-id
+  [db id]
+    {:pre [(and (integer? id)
+                (pos? id))]}
+  (->> (sql/format
+        (assoc select-base
+          :limit 1
+          :where [:= :id id]))
+       (jdbc/execute! db)
+       first
+       (db->article)))
+
+(defn get-in-category
+  "Find all articles in a given category."
   [db category]
-  (->> (sql
-        (sql/select [*]
-          (sql/from :articles)
-          (sql/where '(= :category category))))
+  (->> (sql/format
+        (assoc select-base
+          :where [:= :category category]))
        (jdbc/execute! db)
        (map db->article)))
 
-(defn find-all-articles
+(defn get-all
   [db]
-  (->> (sql
-        (sql/select [*]
-          (sql/from :articles)))
+  (->> (sql/format select-base)
        (jdbc/execute! db)
        (map db->article)))
+
+(defn update
+  [db article]
+  (jdbc/execute! db
+                 (sql/format
+                  {:update :articles
+                   :set (-> article
+                            article->db
+                            (dissoc :id))
+                   :where [:= :id (:id article)]})))
+
+(defn delete
+  [db article-or-id]
+  {:pre [(or (and (integer? article-or-id)
+                  (pos? article-or-id))
+             (map? article-or-id))]}
+  (when-let [id (if (integer? article-or-id)
+                  article-or-id
+                  (:id article-or-id))]
+    (jdbc/execute! db
+                   (sql/format
+                    {:delete-from :articles
+                     :where [:= :id id]}))))

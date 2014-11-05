@@ -1,14 +1,13 @@
 (ns sauerworld.sdos.page
   (:require [sauerworld.sdos.settings :refer (get-settings)]
-            [sauerworld.sdos.models.articles :refer (article) :as articles]
-            [sauerworld.sdos.model :as model]
+            [sauerworld.sdos.models.articles :as articles]
             [sauerworld.sdos.layout :refer (main-template error-template)]))
 
 (defn page
   [category]
   (fn [req]
-    (let [articles (articles/find-category-articles (get-in req [:app :db])
-                                                    category)
+    (let [articles (articles/get-in-category (get-in req [:app :db])
+                                             category)
           settings (get-settings req)]
       (main-template settings articles))))
 
@@ -17,7 +16,7 @@
   (let [id (some->
             (get-in req [:route-params :id])
             (Integer/parseInt))]
-    (if-let [art (model/read (article id) (get-in req [:app :db]))]
+    (if-let [art (articles/get-by-id id (get-in req [:app :db]))]
       (let [settings (get-settings req)]
         (main-template settings [art]))
       {:status 404 :headers {} :body "Sorry, article not found."})))

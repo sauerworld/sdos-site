@@ -16,7 +16,7 @@
 
 (defn rss
   [req]
-  (let [articles (articles/find-category-articles (get-in req [:app :db]) "home")]
+  (let [articles (articles/get-in-category (get-in req [:app :db]) "home")]
     (apply channel-xml
            {:title "Sauerbraten Day of Sobriety"
             :link base-url

@@ -3,7 +3,7 @@
             [clj-time.coerce :as tc]
             [clj-time.core :refer (now)]
             [sauerworld.sdos.model :as model]
-            [sqlingvo.core :refer (sql) :as sql]
+            [honeysql.core :as sql]
             [clojure.java.jdbc :as jdbc])
   (:import [java.util UUID]))
 
@@ -33,92 +33,116 @@
   {:created-date tc/to-date-time})
 
 (def ^{:private true} select-base
-  (sql/select [*]
-    (sql/from :users)))
+  {:select [:*]
+   :from [:users]})
 
-(defrecord User
-    [id username password
-     validation-key validated? pubkey
-     created-date admin?]
-
-  model/DatabaseRecord
-  (create [this db]
-    (jdbc/execute! db
-                   (sql
-                    (sql/insert :users []
-                      (sql/values
-                       (model/->db this key-spec ->db-val-spec))))))
-  (read [this db]
-    {:pre [(or id username validation-key)]}
-    ;; uses id, username or validation-key
-    (let [query (-> select-base
-                    (sql/compose
-                     (sql/limit 1)
-                     (sql/where
-                      (cond
-                       id '(= :id id)
-                       username '(= :username username)
-                       validation-key '(= :validation_key validation-key))))
-                    sql)]
-      (some-> (jdbc/execute! db query)
-              first
-              (model/->record key-spec ->user-val-spec true)
-              (->> (merge this)))))
-  (update [this db]
-      {:pre [id]}
-    (jdbc/execute! db
-                   (sql
-                    (sql/update :users
-                        (-> this
-                            (model/->db key-spec ->db-val-spec)
-                            (dissoc :id))
-                      (sql/where '(= :id id))))))
-  (delete [this db]
-    {:pre [id]}
-    (jdbc/execute! db
-                   (sql
-                    (sql/delete :users
-                      (sql/where '(= :id id)))))))
-
-(defn user
-  "Creates a User record, either from a map or an id.
-   If no-hash? is true, password fields won't be hashed."
-  [user-or-id & [no-hash?]]
-  {:pre [(or (and (integer? user-or-id)
-                  (pos? user-or-id))
-             (map? user-or-id))]}
-  (if (integer? user-or-id)
-    (map->User {:id user-or-id})
-    (let [defaults {:created-date (now)
-                    :admin false}]
-      (-> user-or-id
-          (cond->
-           (and (not no-hash?)
-                (contains? user-or-id :password))
-           (update-in [:password] hash-password))
-          (->> (merge defaults))
-          map->User))))
+;; User contains fields:
+;; id username password validation-key validated? pubkey created-date admin?
 
 (defn db->user
-  "Creates a User record from a database result."
+  "Creates a user map from a database result."
   [result]
-  (map->User (model/->record result key-spec ->user-val-spec true)))
+  (model/->record result key-spec ->user-val-spec true))
+
+(defn user->db
+  "Creates database-formatted record from a user map."
+  [user]
+  (model/->db user key-spec ->db-val-spec))
+
+(defn create
+  [db user]
+  (-> {:insert-into :users
+       :values [(user->db user)]}
+      sql/format
+      (->> (jdbc/execute! db))))
+
+(defn get-one-id
+  "Gets a single user by id."
+  [db id]
+  {:pre [(integer? id)]}
+  (-> select-base
+      (assoc :where [:= :id id]
+             :limit 1)
+      sql/format
+      (->> (jdbc/execute! db)
+           first
+           db->user)))
+
+(defn get-ids
+  "Gets multiple users by ids."
+  [db ids]
+  (-> select-base
+      (assoc :where [:in :id ids])
+      sql/format
+      (->> (jdbc/execute! db)
+           (map db->user))))
+
+(defn get-by-id
+  "Gets user records by id. If id-or-ids is a collection, gets multiple."
+  [db id-or-ids]
+  {:pre [(and (integer? id-or-ids)
+              (pos? id-or-ids))
+         (or (coll? id-or-ids))]}
+  (if (integer? id-or-ids)
+    (get-one-id db id-or-ids)
+    (get-ids db id-or-ids)))
+
+(defn get-by-validation-key
+  [db validation-key]
+  (-> select-base
+      (assoc :where [:= :validation_key validation-key]
+             :limit 1)
+      (->> (jdbc/execute! db)
+           first
+           db->user)))
+
+(defn get-by-username
+  [db username]
+  (-> select-base
+      (assoc :where [:= :username username]
+             :limit 1)
+      (->> (jdbc/execute! db)
+           first
+           db->user)))
+
+(defn get-all
+  [db]
+  (some->> (sql/format select-base)
+           (jdbc/execute! db)
+           (map db->user)))
+
+(defn update
+  [db user]
+  {:pre [(:id user)]}
+  (jdbc/execute! db
+                 (sql/format
+                  {:update :users
+                   :set (-> user
+                            user->db
+                            (dissoc :id) )
+                   :where [:= :id (:id user)]})))
 
 (defn update-password
   "Updates a User record with a new password, hashing it."
-  [user new-password]
-  (assoc user :password (hash-password new-password)))
+  [db id new-password]
+  (update db {:id id :password (hash-password new-password)}))
 
-(defn find-all-users
-  [db]
-  (some->> (sql select-base)
-           (jdbc/execute! db)
-           (map db->user)))
+(defn delete
+  [db user-or-id]
+  {:pre [(or (and (integer? user-or-id)
+                  (pos? user-or-id))
+             (map? user-or-id))]}
+  (when-let [id (if (integer? user-or-id)
+                  user-or-id
+                  (:id user-or-id))]
+    (jdbc/execute! db
+                   (sql/format
+                    {:delete-from :users
+                     :where [:= :id id]}))))
 
-(defn find-users-by-ids
-  [db ids]
-  (some->> (sql
-            (sql/compose select-base
-                         (sql/where (list :in :id (seq ids)))))
-           (jdbc/execute! db)
-           (map db->user)))
+
+(defn check-login
+  [db username password]
+  (when-let [user (get-by-username db username)]
+    (when (check-password user password)
+      user)))

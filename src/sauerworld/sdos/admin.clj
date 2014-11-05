@@ -1,7 +1,7 @@
 (ns sauerworld.sdos.admin
   (:require [sauerworld.sdos.settings :refer :all]
             [sauerworld.sdos.model :as model]
-            [sauerworld.sdos.models.articles :refer (article) :as articles]
+            [sauerworld.sdos.models.articles :as articles]
             [sauerworld.sdos.views.admin :as view]
             [sauerworld.sdos.layout :as layout]))
 
@@ -15,7 +15,7 @@
 (defn show-articles-summary
   [req]
   (let [db (:db (:app req))
-        articles (articles/find-all-articles db)
+        articles (articles/get-all db)
         content (view/articles-summary articles)]
     (layout/app-page (get-settings req) content)))
 
@@ -31,7 +31,7 @@
              :author (:author form)
              :category (:category form)
              :content (:content form)}
-        save (model/create (article art) (:db (:app req)))
+        save (articles/create art (:db (:app req)))
         content (if save
                   "Article inserted successfully."
                   "Article failed to insert properly.")]
@@ -39,8 +39,8 @@
 
 (defn edit-article-page
   [req]
-  (let [id (-> req :params :id)
-        art (model/read (article id) (:db (:app req)))
+  (let [id (-> req :params :id Integer/parseInt)
+        art (articles/get-by-id id (:db (:app req)))
         content (view/article art true)]
     (layout/app-page (get-settings req) content)))
 
@@ -53,7 +53,7 @@
              :author (:author form)
              :category (:category form)
              :content (:content form)}
-        save (model/update (article art) (:db (:app req)))
+        save (articles/update art (:db (:app req)))
         content (if save
                   "Article edited successfully."
                   "Article failed to edit properly.")]

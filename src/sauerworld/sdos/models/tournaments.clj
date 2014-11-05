@@ -311,7 +311,7 @@
   (let [registrations (find-registrations-by-events db event-or-events)]
     (if (contains? (set subrecords) :user)
       (let [users-by-id (->> (set (map :user-id registrations))
-                             (users/find-users-by-ids db)
+                             (users/get-by-id db)
                              (map (fn [u] [(:id u) u]))
                              (into {}))]
         (map (fn [r] (assoc r :user (get users-by-id (:user-id r))))
