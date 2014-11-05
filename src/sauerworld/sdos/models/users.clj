@@ -1,10 +1,11 @@
 (ns sauerworld.sdos.models.users
-  (:require [clojurewerkz.scrypt.core :as sc]
-            [clj-time.coerce :as tc]
+  (:require [clj-time.coerce :as tc]
             [clj-time.core :refer (now)]
-            [sauerworld.sdos.model :as model]
+            [clojurewerkz.scrypt.core :as sc]
             [honeysql.core :as sql]
-            [clojure.java.jdbc :as jdbc])
+            [validateur.validation :as v]
+            [sauerworld.sdos.model :as model]
+            [sauerworld.sdos.system.database :as db])
   (:import [java.util UUID]))
 
 (defn hash-password
@@ -54,7 +55,7 @@
   (-> {:insert-into :users
        :values [(user->db user)]}
       sql/format
-      (->> (jdbc/execute! db))))
+      (->> (db/write db))))
 
 (defn get-one-id
   "Gets a single user by id."
@@ -64,7 +65,7 @@
       (assoc :where [:= :id id]
              :limit 1)
       sql/format
-      (->> (jdbc/execute! db)
+      (->> (db/read db)
            first
            db->user)))
 
@@ -74,7 +75,7 @@
   (-> select-base
       (assoc :where [:in :id ids])
       sql/format
-      (->> (jdbc/execute! db)
+      (->> (db/read db)
            (map db->user))))
 
 (defn get-by-id
@@ -92,7 +93,8 @@
   (-> select-base
       (assoc :where [:= :validation_key validation-key]
              :limit 1)
-      (->> (jdbc/execute! db)
+      sql/format
+      (->> (db/read db)
            first
            db->user)))
 
@@ -101,26 +103,27 @@
   (-> select-base
       (assoc :where [:= :username username]
              :limit 1)
-      (->> (jdbc/execute! db)
+      sql/format
+      (->> (db/read db)
            first
            db->user)))
 
 (defn get-all
   [db]
   (some->> (sql/format select-base)
-           (jdbc/execute! db)
+           (db/read db)
            (map db->user)))
 
 (defn update
   [db user]
   {:pre [(:id user)]}
-  (jdbc/execute! db
-                 (sql/format
-                  {:update :users
-                   :set (-> user
-                            user->db
-                            (dissoc :id) )
-                   :where [:= :id (:id user)]})))
+  (db/write db
+            (sql/format
+             {:update :users
+              :set (-> user
+                       user->db
+                       (dissoc :id) )
+              :where [:= :id (:id user)]})))
 
 (defn update-password
   "Updates a User record with a new password, hashing it."
@@ -135,14 +138,72 @@
   (when-let [id (if (integer? user-or-id)
                   user-or-id
                   (:id user-or-id))]
-    (jdbc/execute! db
-                   (sql/format
-                    {:delete-from :users
-                     :where [:= :id id]}))))
-
+    (db/write db
+              (sql/format
+               {:delete-from :users
+                :where [:= :id id]}))))
 
 (defn check-login
   [db username password]
   (when-let [user (get-by-username db username)]
     (when (check-password user password)
       user)))
+
+
+;;; Validation
+
+(defn match-of
+  "Creates validation function that specifies that two attributes must be the
+   same (for example, for password & password confirmation fields."
+  [attribute1 attribute2]
+  (let [getter (fn [k] (fn [m] (if (vector? k)
+                                 (get-in m k)
+                                 (get m k))))
+        f1 (getter attribute1)
+        f2 (getter attribute2)]
+    (fn [m]
+      (let [[v1 v2] ((juxt f1 f2) m)
+            res (= v1 v2)
+            msg (str "must match " attribute2)
+            errors (if res {} {attribute1 #{msg}})]
+        [(empty? errors) errors]))))
+
+(defn uniqueness-of
+  "Validation function that checks that a value unique. Takes a key to retrieve
+   the value, and a function that, when passed the value, will report its
+   uniqueness. Like, for instance, a database query function."
+  [attribute check-fn]
+  (let [f (if (vector? attribute) get-in get)]
+    (fn [m]
+      (let [value (f m attribute)
+            unique? (check-fn value)
+            msg (str value " not available, already taken.")
+            errors (if unique? {} {attribute #{msg}})]
+        [(empty? errors) errors]))))
+
+(def password-match
+  (match-of :password :password-confirm))
+
+(defn make-registration-validator
+  [db]
+  (v/validation-set
+   (v/presence-of :email)
+   (v/presence-of :password)
+   password-match
+   (v/presence-of :username)
+   (uniqueness-of :username #(->> %
+                                 (get-by-username db)
+                                 nil?))))
+
+(defn validate-registration
+  [db registration]
+  (-> db make-registration-validator registration))
+
+(def password-validator
+  (v/validation-set
+   (v/presence-of :password)
+   password-match))
+
+(defn validate-password
+  [params]
+  (password-validator params))

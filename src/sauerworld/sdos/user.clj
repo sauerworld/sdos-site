@@ -6,6 +6,7 @@
             [sauerworld.sdos.api :as api]
             [sauerworld.sdos.models.users :as users]
             [sauerworld.sdos.email :refer (send-email)]
+            [sauerworld.sdos.system.app :as app]
             [sauerworld.cube2.crypto :as crypto]
             [compojure.response :refer (render)]
             [clojure.tools.logging :refer (info)]))
@@ -91,7 +92,7 @@ To validate your email address, please click on:</p>
   (do
     (let [username (-> req :params :username)
           password (-> req :params :password)]
-      (if-let [user (users/check-login (get-in req [:app :db]) api/request :users/check-login username password)]
+      (if-let [user (users/check-login (app/get-db req) username password)]
         (assoc-in redirect-home [:session :user] user)
         (layout/app-page (get-settings req)
                          (view/login-page "Invalid username or password."))))))
@@ -108,24 +109,26 @@ To validate your email address, please click on:</p>
   (layout/app-page (get-settings req)
                    (view/registration-page)))
 
+;; TODO: fix this, what a nightmare
 (defn do-registration
   [req]
   (let [{:keys [username password password-confirm email]} (:params req)
+        db (app/get-db req)
         registration {:username username
                       :password password
                       :password-confirm password-confirm
                       :email email}
-        server (:smtp-server req)
-        validation (api/request :users/validate-registration registration)]
+        smtp (app/get-smtp req)
+        validation (users/validate-registration db registration)]
     (if-not (empty? validation) ;; escapes first
       (layout/app-page (get-settings req)
                        (view/registration-page (assoc registration
                                                  :error
                                                  (error-strings validation))))
       (do
-        (api/request :users/insert-user registration)
-        (let [newuser (api/request :users/get-by-username username)]
-          (if (send-validation-email server email (:validation_key newuser))
+        (users/create db registration)
+        (let [newuser (users/get-by-username db username)]
+          (if (send-validation-email smtp email (:validation_key newuser))
             (layout/app-page (get-settings req)
                              (view/registration-thanks))
             (let [error-msg
@@ -143,7 +146,7 @@ To validate your email address, please click on:</p>
   [req]
   (let [password (-> req :params :password)
         password-confirm (-> req :params :password-confirm)
-        validation (api/request :users/validate-password (:params req))]
+        validation (users/validate-password (:params req))]
     (if-not (nil? validation)
       ;; validation error case
       (layout/app-page (get-settings req)
@@ -151,7 +154,7 @@ To validate your email address, please click on:</p>
                         {:error (error-strings validation)}))
       ;; validation ok case
       (let [user (-> req :session :user)]
-        (if (api/request :users/update-password user password)
+        (if (users/update-password (app/get-db req) user password)
           (layout/app-page (get-settings req)
                            (view/success-page))
           (let [error-msg
@@ -162,14 +165,14 @@ To validate your email address, please click on:</p>
 
 (defn resend-validation
   [req]
-  (let [server (:smtp-server req)
+  (let [smtp (app/get-smtp req)
         user (-> req :session :user)
         email (:email user)
-        validation (:validation_key user)
+        validation (:validation-key user)
         required [["Email server" email] ["user" user]
                   ["email address" email] ["validation key" validation]]]
-    (if (and user email validation server)
-      (if (send-validation-email server email)
+    (if (and user email validation smtp)
+      (if (send-validation-email smtp email)
         (layout/app-page (get-settings req)
                          (view/success-page (str "Validation email resent to "
                                                  email)))
@@ -187,15 +190,16 @@ To validate your email address, please click on:</p>
 (defn validate-email
   [req]
   (let [settings (get-settings req)
-        submitted-key (-> req :route-params :validation-key)]
-    (if-let [user (api/request :users/get-by-validation-key submitted-key)]
+        submitted-key (-> req :route-params :validation-key)
+        db (app/get-db req)]
+    (if-let [user (users/get-by-validation-key db submitted-key)]
       (do
-        (api/request :users/set-validated user)
+        (users/update db (assoc user :validated? true))
         (let [session-user (-> req :session :user)
               body (layout/app-page settings (str "Email validated."))]
           (if (= (:id user) (:id session-user))
             (let [session (:session req)]
-              {:session (assoc-in session [:user :validated] true)
+              {:session (assoc-in session [:user :validated?] true)
                :body body})
             body)))
       (layout/error-template settings
@@ -208,14 +212,15 @@ To validate your email address, please click on:</p>
 
 (defn do-authkey
   [req]
-  (let [user (-> req :session :user)
+  (let [db (app/get-db req)
+        user (-> req :session :user)
         privkey (crypto/make-privkey)
         pubkey (crypto/get-pubkey privkey)
         cs-string (str "authkey \""
                        (:username user) "\" \""
                        privkey
                        "\" \"sauerworld.org\" \nautoauth 1 \nsaveauthkeys\n")]
-    (api/request :users/add-pubkey user pubkey)
+    (users/update db (assoc user :pubkey pubkey))
     (->
      {:status 200
       :headers {"Content-Type" "text/plain"
