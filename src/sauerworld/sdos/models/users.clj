@@ -1,6 +1,5 @@
 (ns sauerworld.sdos.models.users
   (:require [clj-time.coerce :as tc]
-            [clj-time.core :refer (now)]
             [clojurewerkz.scrypt.core :as sc]
             [honeysql.core :as sql]
             [validateur.validation :as v]
