@@ -56,7 +56,7 @@
       sql/format
       (->> (db/write db))))
 
-(defn get-one-id
+(defn find-one-id
   "Gets a single user by id."
   [db id]
   {:pre [(integer? id)]}
@@ -68,7 +68,7 @@
            first
            db->user)))
 
-(defn get-ids
+(defn find-ids
   "Gets multiple users by ids."
   [db ids]
   (-> select-base
@@ -77,17 +77,17 @@
       (->> (db/read db)
            (map db->user))))
 
-(defn get-by-id
+(defn find-by-id
   "Gets user records by id. If id-or-ids is a collection, gets multiple."
   [db id-or-ids]
   {:pre [(and (integer? id-or-ids)
               (pos? id-or-ids))
          (or (coll? id-or-ids))]}
   (if (integer? id-or-ids)
-    (get-one-id db id-or-ids)
-    (get-ids db id-or-ids)))
+    (find-one-id db id-or-ids)
+    (find-ids db id-or-ids)))
 
-(defn get-by-validation-key
+(defn find-by-validation-key
   [db validation-key]
   (-> select-base
       (assoc :where [:= :validation_key validation-key]
@@ -97,7 +97,7 @@
            first
            db->user)))
 
-(defn get-by-username
+(defn find-by-username
   [db username]
   (-> select-base
       (assoc :where [:= :username username]
@@ -107,7 +107,7 @@
            first
            db->user)))
 
-(defn get-all
+(defn find-all
   [db]
   (some->> (sql/format select-base)
            (db/read db)
@@ -144,7 +144,7 @@
 
 (defn check-login
   [db username password]
-  (when-let [user (get-by-username db username)]
+  (when-let [user (find-by-username db username)]
     (when (check-password user password)
       user)))
 
@@ -191,7 +191,7 @@
    password-match
    (v/presence-of :username)
    (uniqueness-of :username #(->> %
-                                 (get-by-username db)
+                                 (find-by-username db)
                                  nil?))))
 
 (defn validate-registration

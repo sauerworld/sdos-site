@@ -127,7 +127,7 @@ To validate your email address, please click on:</p>
                                                  (error-strings validation))))
       (do
         (users/create db registration)
-        (let [newuser (users/get-by-username db username)]
+        (let [newuser (users/find-by-username db username)]
           (if (send-validation-email smtp email (:validation_key newuser))
             (layout/app-page (get-settings req)
                              (view/registration-thanks))
@@ -192,7 +192,7 @@ To validate your email address, please click on:</p>
   (let [settings (get-settings req)
         submitted-key (-> req :route-params :validation-key)
         db (app/get-db req)]
-    (if-let [user (users/get-by-validation-key db submitted-key)]
+    (if-let [user (users/find-by-validation-key db submitted-key)]
       (do
         (users/update db (assoc user :validated? true))
         (let [session-user (-> req :session :user)
