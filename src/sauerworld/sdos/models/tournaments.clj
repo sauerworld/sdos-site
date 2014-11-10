@@ -3,6 +3,8 @@
             [clj-time.coerce :as tc]
             [sauerworld.sdos.model :as model]
             [sauerworld.sdos.models.users :as users]
+            [sauerworld.sdos.models.events :as events]
+            [sauerworld.sdos.models.registrations :as registrations]
             [sauerworld.sdos.system.database :as db]
             [honeysql.core :as sql]
             [clojure.java.jdbc :as jdbc]))
@@ -38,6 +40,15 @@
         :values (tournament->db tourney)}
        sql/format
        (db/write db)))
+
+(defn find-by-id
+  [db id]
+  (some-> (assoc select-base :where [[:= :id id]])
+          (sql/format)
+          (db/read db)
+          first
+          (db->tournament)
+          (map db->tournament)))
 
 (defn find-by-ids
   [db ids]
@@ -85,45 +96,44 @@
 ;;; Higher-level functions, creating nested relations
 ;;;
 
-(comment
-  (defn nested-find-registrations
-    [db event-or-events & subrecords]
-    {:pre [(coll? event-or-events)]}
-    (let [registrations (find-registrations-by-events db event-or-events)]
-      (if (contains? (set subrecords) :user)
-        (let [users-by-id (->> (set (map :user-id registrations))
-                               (users/get-by-id db)
-                               (map (fn [u] [(:id u) u]))
-                               (into {}))]
-          (map (fn [r] (assoc r :user (get users-by-id (:user-id r))))
-               registrations))
-        registrations)))
+(defn add-registrations-to-event
+  ([event registrations]
+     (->> registrations
+          (filter #(= (:id event) (:event-id %)) registrations)
+          (assoc event :registrations)))
+  ([event registrations users]
+     (let [users-by-id (if (map? users)
+                         users
+                         (group-by :id users))
+           maybe-add-user (fn [r] (if-let [u (get users-by-id (:user-id r))]
+                                    (assoc r :user u)
+                                    r))]
+       (cond-> (add-registrations-to-event event registrations)
+               (seq users)
+               (update-in [:registrations] (partial map maybe-add-user))))))
 
-  (defn nested-find-events
-    [db tournament-or-tournaments & subrecords]
-    {:pre [(coll? tournament-or-tournaments)]}
-    (let [events (find-events-by-tournaments db tournament-or-tournaments)]
-      (if (contains? (set subrecords) :registration)
-        (let [registrations-by-event-id (->> (apply nested-find-registrations
-                                                    db events subrecords)
-                                             (group-by :event-id))]
-          (map (fn [e] (assoc e :registration (get registrations-by-event-id (:id e))))
-               events))
-        events)))
+(defn combine-tournament-entities
+  "Takes a tournament map, and optional collections of events, registrations,
+   and users, and combined into a single nested tournament map."
+  [{:keys [tournament events registrations users]}]
+  (cond-> tournament
+          events
+          (assoc :events (filter #(= (:id tournament) (:tournament-id %))))
+          registrations
+          (update-in :events (partial map #(add-registrations-to-event % registrations users)))))
 
-  (defn nested-find-tournaments
-    [db tournaments-or-ids & subrecords]
-    {:pre [(or (coll? tournaments-or-ids) (integer? tournaments-or-ids))]}
-    (let [tournaments (cond
-                       (integer? tournaments-or-ids)
-                       [(model/read (tournament tournaments-or-ids) db)]
-                       (map? tournaments-or-ids) [tournaments-or-ids]
-                       (map? (first (tournaments-or-ids))) tournaments-or-ids
-                       :else (find-tournaments-by-ids db tournaments-or-ids))]
-      (if (contains? (set subrecords) :event)
-        (let [events-by-tourney-id (->> (apply nested-find-events
-                                               db tournaments subrecords)
-                                        (group-by :tournament-id))]
-          (map (fn [t] (assoc t :event (get events-by-tourney-id (:id t))))
-               tournaments))
-        tournaments))))
+
+(defn get-tournament-with
+  [db id & with]
+  (let [relateds (into #{} with)
+        tourney (find-by-id db id)
+        events (when (and tourney (contains? relateds :events))
+                 (events/find-by-tournaments db tourney))
+        registrations (when (and events (contains? relateds :registrations))
+                        (registrations/find-by-events events))
+        users (when (and registrations (contains? relateds :users))
+                (users/find-ids db (map :user-id registrations)))]
+    (combine-tournament-entities {:tournament tourney
+                                  :events events
+                                  :registrations registrations
+                                  :users users})))
