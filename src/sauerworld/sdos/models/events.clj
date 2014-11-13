@@ -32,6 +32,15 @@
        sql/format
        (db/write db)))
 
+(defn find-by-id
+  [db id]
+  (some->> (assoc select-base
+             :where [:= :id id])
+           (sql/format)
+           (db/read db)
+           first
+           db->event))
+
 (defn find-by-ids
   [db ids]
   (some->> (assoc select-base
