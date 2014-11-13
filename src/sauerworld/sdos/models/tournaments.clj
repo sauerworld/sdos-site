@@ -70,6 +70,13 @@
         first
         db->tournament)))
 
+(defn find-all
+  [db]
+  (some->> select-base
+           sql/format
+           (db/read db)
+           (map db->tournament)))
+
 (defn update
   [db tourney]
   (db/write db
