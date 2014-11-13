@@ -25,6 +25,13 @@
   [registration]
   (model/->db registration registration-key-spec registration->db-val-spec))
 
+(defn create
+  [db registration]
+  (->> {:insert-into :registrations
+        :values (registration->db registration)}
+       sql/format
+       (db/write db)))
+
 (defn find-by-ids
   [db ids]
   (some->> (assoc select-base
@@ -54,3 +61,33 @@
              sql/format
              (db/read db)
              (map db->registration))))
+
+(defn find-by-user-and-event
+  [db user-id event-id]
+  (some->> (assoc select-base
+             :where [:and [:= :user_id user-id] [:= :event_id event-id]]
+             :limit 1)
+           sql/format
+           (db/read db)
+           first
+           db->registration))
+
+(defn update
+  [db registration]
+  (->> {:update :tournaments
+        :set (-> registration
+                 registration->db
+                 (dissoc :id))
+        :where [:= :id (:id registration)]}
+       sql/format
+       (db/write db)))
+
+(defn delete
+  [db registration]
+  {:pre [(or (integer? registration)
+             (integer? (:id registration)))]}
+  (let [id (or (:id registration) registration)]
+    (->> {:delete-from :registrations
+          :where [:= :id id]}
+         sql/format
+         (db/write db))))
