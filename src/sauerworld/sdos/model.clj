@@ -2,13 +2,6 @@
   (:require [clojure.set :as set]
             [sauerworld.sdos.utils :as utils]))
 
-(defprotocol DatabaseRecord
-  "Supports CRUD operations for a database record."
-  (create [this db] "INSERT operation.")
-  (read [this db] "SELECT operation.")
-  (update [this db] "UPDATE operation.")
-  (delete [this db] "DELETE operation."))
-
 (defn ->db
   "Converts record keys according a the key-spec, a map of old key -> new key,
    values according to val-spec, a map of key -> new value fn, and then converts
