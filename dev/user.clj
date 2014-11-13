@@ -44,3 +44,14 @@
 (defn reset []
   (stop)
   (refresh :after 'user/go))
+
+
+;;; Plan to proceed
+
+;; Rip out the guts of the over-complicated "model" system, make simple queries.
+;; Later can replace it with new db library if so inclined.
+;;
+;; Move towards getting the user/signup code into a separate thing, so it can be
+;; part of sauerworld proper
+;;
+;; Maybe an api.sauerworld.org or something for these functions
