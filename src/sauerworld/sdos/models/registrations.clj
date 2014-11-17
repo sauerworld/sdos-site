@@ -72,6 +72,13 @@
            first
            db->registration))
 
+(defn find-all
+  [db]
+  (some->> select-base
+           sql/format
+           (db/read db)
+           (map db->registration)))
+
 (defn update
   [db registration]
   (->> {:update :tournaments

@@ -66,6 +66,13 @@
              (db/read db)
              (map db->event))))
 
+(defn find-all
+  [db]
+  (some->> select-base
+           (sql/format)
+           (db/read db)
+           (map db->event)))
+
 (defn update
   [db event]
   (db/write db
