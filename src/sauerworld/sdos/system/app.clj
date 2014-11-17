@@ -1,11 +1,12 @@
 (ns sauerworld.sdos.system.app
   (:require [clojure.tools.logging :as log]
-            [com.stuartsierra.component :as component]))
+            [com.stuartsierra.component :as component]
+            [ring.middleware.resource :refer (wrap-resource)]))
 
-(defn wrap-resource
-  [h resource-name resource]
+(defn wrap-component
+  [h component-name component]
   (fn [req]
-    (h (assoc req resource-name resource))))
+    (h (assoc req component-name component))))
 
 (defrecord SdosApp [config db smtp handler]
   component/Lifecycle
@@ -16,8 +17,10 @@
       (let [_ (assert (fn? (:handler config))
                       "SdosSite initialization error: Handler is not a function")
             handler (-> (:handler config)
-                        (wrap-resource :db db)
-                        (wrap-resource :smtp smtp))]
+                        (wrap-component :db db)
+                        (wrap-component :smtp smtp)
+                        ;; TODO: Fix this, somewhat hard-coded and doesn't really belong here
+                        (wrap-resource "public"))]
         (assoc this :handler handler))))
 
   (stop [this]
