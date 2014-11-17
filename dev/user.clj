@@ -9,13 +9,14 @@
             [clj-time.coerce :as tc]
             [compojure.handler :refer (site)]
             [compojure.response :refer (render)]
-            [postal.core :as mail]
             [environ.core :refer (env)]
+            [honeysql.core :as sql]
+            [postal.core :as mail]
             [sauerworld.sdos.system :as system]
             [sauerworld.sdos.config :refer (site-conf)]
             [sauerworld.sdos.core :as core]
-            [sauerworld.sdos.db :as db]
             [sauerworld.sdos.layout :as layout]
+            [sauerworld.sdos.system.database :as db]
             [com.stuartsierra.component :as component]
             [clojure.tools.namespace.repl :refer (refresh refresh-all)]
             [net.cgrand.enlive-html :as html]
@@ -55,3 +56,15 @@
 ;; part of sauerworld proper
 ;;
 ;; Maybe an api.sauerworld.org or something for these functions
+
+(defmacro current-work
+  []
+  '(do
+     (require 'migrate)
+     (def h2s (migrate/new-h2-spec "resources/db/main"))
+     (def dbrec (-> (db/new-database h2s) component/start))
+
+
+
+     )
+  )
