@@ -25,7 +25,7 @@
         db (app/get-db req)
         next-t (tournaments/find-next db)
         user (-> req :session :user)]
-    (if next-t
+    (if (seq next-t)
       (let [tourney (tournaments/get-tournament-with db (:id next-t) :events :registrations :users)]
         (app-page settings (view/tournament tourney)))
       (error-template settings
