@@ -30,7 +30,7 @@
                   (cond (coll? k)
                         (contains? (get-in m (drop-last k)) (last k))
                         :default (contains? m k))
-                  update-key (cond-> k (complement coll?) [k])]
+                  update-key (if (coll? k) k [k])]
               (if contains-key?
                 (update-in m update-key f)
                 m)))
