@@ -20,8 +20,8 @@
    :published-date tc/to-date-time})
 
 (def ^{:private true} select-base
-  {:select [*]
-   :from :articles})
+  {:select [:*]
+   :from [:articles]})
 
 ;; Articles have the following fields:
 ;; id created-date published-date published? category title author content
