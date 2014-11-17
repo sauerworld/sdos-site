@@ -1,8 +1,8 @@
 (ns sauerworld.sdos.models.articles
   (:require [clj-time.coerce :as tc]
             [clj-time.core :refer (now)]
-            [clojure.java.jdbc :as jdbc]
             [sauerworld.sdos.model :as model]
+            [sauerworld.sdos.system.database :as db]
             [honeysql.core :as sql]))
 
 (def ^{:private true} key-spec
@@ -40,10 +40,10 @@
 
 (defn create
   [db article]
-  (jdbc/execute! db
-                 (sql/format
-                  {:insert-into :articles
-                   :values [(article->db article)]})))
+  (db/write db
+            (sql/format
+             {:insert-into :articles
+              :values [(article->db article)]})))
 
 (defn find-by-id
   [db id]
@@ -53,7 +53,7 @@
         (assoc select-base
           :limit 1
           :where [:= :id id]))
-       (jdbc/execute! db)
+       (db/read db)
        first
        (db->article)))
 
@@ -63,24 +63,24 @@
   (->> (sql/format
         (assoc select-base
           :where [:= :category category]))
-       (jdbc/execute! db)
+       (db/read db)
        (map db->article)))
 
 (defn find-all
   [db]
   (->> (sql/format select-base)
-       (jdbc/execute! db)
+       (db/read db)
        (map db->article)))
 
 (defn update
   [db article]
-  (jdbc/execute! db
-                 (sql/format
-                  {:update :articles
-                   :set (-> article
-                            article->db
-                            (dissoc :id))
-                   :where [:= :id (:id article)]})))
+  (db/write db
+            (sql/format
+             {:update :articles
+              :set (-> article
+                       article->db
+                       (dissoc :id))
+              :where [:= :id (:id article)]})))
 
 (defn delete
   [db article-or-id]
@@ -90,7 +90,7 @@
   (when-let [id (if (integer? article-or-id)
                   article-or-id
                   (:id article-or-id))]
-    (jdbc/execute! db
-                   (sql/format
-                    {:delete-from :articles
-                     :where [:= :id id]}))))
+    (db/write db
+              (sql/format
+               {:delete-from :articles
+                :where [:= :id id]}))))
