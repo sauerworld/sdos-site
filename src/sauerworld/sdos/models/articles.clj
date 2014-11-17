@@ -11,8 +11,8 @@
 
 (def ^{:private true} ->db-val-spec
   "Spec to convert Article vals to db row."
-  {:created-date tc/to-date
-   :published-date tc/to-date})
+  {:created-date tc/to-timestamp
+   :published-date tc/to-timestamp})
 
 (def ^{:private true} ->article-val-spec
   "Spec to convert db row vals to Article."
