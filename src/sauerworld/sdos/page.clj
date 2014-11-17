@@ -6,7 +6,7 @@
 (defn page
   [category]
   (fn [req]
-    (let [articles (articles/get-in-category (get-in req [:app :db])
+    (let [articles (articles/find-by-category (get-in req [:app :db])
                                              category)
           settings (get-settings req)]
       (main-template settings articles))))
@@ -16,7 +16,7 @@
   (let [id (some->
             (get-in req [:route-params :id])
             (Integer/parseInt))]
-    (if-let [art (articles/get-by-id id (get-in req [:app :db]))]
+    (if-let [art (articles/find-by-id id (get-in req [:app :db]))]
       (let [settings (get-settings req)]
         (main-template settings [art]))
       {:status 404 :headers {} :body "Sorry, article not found."})))

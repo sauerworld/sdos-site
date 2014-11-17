@@ -45,7 +45,7 @@
                   {:insert-into :articles
                    :values [(article->db article)]})))
 
-(defn get-by-id
+(defn find-by-id
   [db id]
     {:pre [(and (integer? id)
                 (pos? id))]}
@@ -57,7 +57,7 @@
        first
        (db->article)))
 
-(defn get-in-category
+(defn find-by-category
   "Find all articles in a given category."
   [db category]
   (->> (sql/format
@@ -66,7 +66,7 @@
        (jdbc/execute! db)
        (map db->article)))
 
-(defn get-all
+(defn find-all
   [db]
   (->> (sql/format select-base)
        (jdbc/execute! db)
