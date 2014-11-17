@@ -37,7 +37,7 @@
 (defn create
   [db tourney]
   (->> {:insert-into :tournaments
-        :values (tournament->db tourney)}
+        :values [(tournament->db tourney)]}
        sql/format
        (db/write db)))
 

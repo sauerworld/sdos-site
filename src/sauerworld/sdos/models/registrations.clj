@@ -15,7 +15,7 @@
 
 (def ^{:private true} select-base
   {:select [:*]
-   :from :registrations})
+   :from [:registrations]})
 
 (defn db->registration
   [result]
@@ -28,7 +28,7 @@
 (defn create
   [db registration]
   (->> {:insert-into :registrations
-        :values (registration->db registration)}
+        :values [(registration->db registration)]}
        sql/format
        (db/write db)))
 

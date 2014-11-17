@@ -28,7 +28,7 @@
   [db event]
   {:pre [(integer? (:id event)) (integer? (:id event))]}
   (->> {:insert-into :events
-        :values (event->db event)}
+        :values [(event->db event)]}
        sql/format
        (db/write db)))
 
