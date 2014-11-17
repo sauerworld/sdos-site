@@ -73,12 +73,12 @@
           :subname (str "mem:" db)}
          opts))
 
-(defrecord Database [config ^ComboPooledDataSource datasource]
+(defrecord Database [config ^ComboPooledDataSource connection]
   component/Lifecycle
 
   (start [this]
     (println ";; Starting database")
-    (if datasource ;; already started
+    (if connection ;; already started
       (do
         (println ";; Database already started")
         this)
@@ -87,11 +87,11 @@
 
   (stop [this]
     (println ";; Stopping database")
-    (if (not datasource) ;; already stopped
+    (if (not connection) ;; already stopped
       this
       (do
         (try
-          (.close datasource)
+          (.close connection)
           (catch Throwable t
             (log/warn t "Error when stopping database")))
         (assoc this :connection nil)))))
@@ -102,8 +102,12 @@
 
 (defn read
   [db query]
-  (jdbc/query (:datasource db) query))
+  (jdbc/query {:datasource (:connection db)} query))
 
 (defn write
   [db query]
-  (jdbc/execute! (:datasource db) query))
+  (jdbc/execute! {:datasource (:connection db)} query))
+
+(defn do-commands
+  [db commands]
+  (apply jdbc/db-do-commands {:datasource (:connection db)} commands))
