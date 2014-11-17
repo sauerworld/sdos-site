@@ -8,13 +8,15 @@
               :dependencies [[org.clojars.jcrossley3/tools.namespace "0.2.4.1"]
                              [ring-mock "0.1.5"]
                              [criterium "0.4.3"]
-                             [com.h2database/h2 "1.4.178"]]
+                             ;;[com.h2database/h2 "1.4.178"]
+                             ]
               :plugins [[lein-environ "0.5.0"]]}
              :test {:dependencies [[com.h2database/h2 "1.4.178"]]}}
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [org.clojure/tools.logging "0.2.6"]
                  [com.stuartsierra/component "0.2.1"]
                  [org.immutant/web "2.0.0-alpha2"]
+                 [me.raynes/fs "1.4.4"]
                  [clj-time "0.7.0"]
                  [clj-rss "0.1.3"]
                  [camel-snake-kebab "0.1.5"]
@@ -32,7 +34,7 @@
                  [c3p0/c3p0 "0.9.1.2"]
                  [postgresql/postgresql "9.3-1101.jdbc41"]
                  [sauerworld/cube2.crypto "1.0.0"]
-                 [com.h2database/h2 "1.4.178"]
+                 [com.h2database/h2 "1.3.174"]
                  [clojurewerkz/scrypt "1.1.0"]
                  [com.novemberain/validateur "1.7.0"]]
   :ragtime {:migrations ragtime.sql.files/migrations}
