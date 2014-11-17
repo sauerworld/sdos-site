@@ -16,6 +16,7 @@ CREATE TABLE users (
        id             serial,
        username       text,
        password       text,
+       email          text,
        validation_key text,
        validated      boolean,
        pubkey         text,
