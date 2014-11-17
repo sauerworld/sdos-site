@@ -26,7 +26,7 @@
 
 (def ^{:private true} ->db-val-spec
   "Spec to convert User vals to db row."
-  {:created-date tc/to-date})
+  {:created-date tc/to-timestamp})
 
 (def ^{:private true} ->user-val-spec
   "Spec to convert db row vals to User."

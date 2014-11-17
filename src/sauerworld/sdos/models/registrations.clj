@@ -8,7 +8,7 @@
   {})
 
 (def ^{:private true} registration->db-val-spec
-  {:date tc/to-date})
+  {:date tc/to-timestamp})
 
 (def ^{:private true} ->registration-val-spec
   {:date tc/to-date-time})

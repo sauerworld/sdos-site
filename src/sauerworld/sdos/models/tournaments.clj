@@ -15,8 +15,8 @@
 
 (def ^{:private true} tournament->db-val-spec
   "Spec to convert Tournament vals to db row."
-  {:start-date tc/to-date
-   :end-date tc/to-date})
+  {:start-date tc/to-timestamp
+   :end-date tc/to-timestamp})
 
 (def ^{:private true} ->tournament-val-spec
   {:start-date tc/to-date-time
