@@ -9,6 +9,7 @@
                              [ring-mock "0.1.5"]
                              [criterium "0.4.3"]
                              ;;[com.h2database/h2 "1.4.178"]
+                             [ring/ring-devel "1.3.1"]
                              ]
               :plugins [[lein-environ "0.5.0"]]}
              :test {:dependencies [[com.h2database/h2 "1.4.178"]]}}
