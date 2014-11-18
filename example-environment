@@ -1,0 +1,14 @@
+# shell environment variables for deployment:
+
+DB_USER="sauerworld"
+DB_PASSWORD="sauerworld"
+DB_DB="sauerworld"
+DB_TYPE="postgres"
+
+HTTP_PORT="8080"
+
+SMTP_HOST="smtp.mailgun.org"
+SMTP_LOGIN="user@dos.sauerworld.org"
+SMTP_PASSWORD="sauerworld"
+
+
