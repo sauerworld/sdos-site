@@ -38,6 +38,4 @@
                  [sauerworld/cube2.crypto "1.0.0"]
                  [com.h2database/h2 "1.3.174"]
                  [clojurewerkz/scrypt "1.1.0"]
-                 [com.novemberain/validateur "1.7.0"]]
-  :ragtime {:migrations ragtime.sql.files/migrations}
-  :plugins [[ragtime/ragtime.lein "0.3.6"]])
+                 [com.novemberain/validateur "1.7.0"]]  )
