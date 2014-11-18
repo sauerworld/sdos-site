@@ -11,7 +11,8 @@
                              ;;[com.h2database/h2 "1.4.178"]
                              [ring/ring-devel "1.3.1"]
                              ]
-              :plugins [[lein-environ "0.5.0"]]}
+              :plugins [[lein-environ "1.0.0"]]
+              :env {:dev true}}
              :test {:dependencies [[com.h2database/h2 "1.4.178"]]}}
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [org.clojure/tools.logging "0.2.6"]
@@ -21,7 +22,7 @@
                  [clj-time "0.7.0"]
                  [clj-rss "0.1.3"]
                  [camel-snake-kebab "0.1.5"]
-                 [environ "0.5.0"]
+                 [environ "1.0.0"]
                  [com.draines/postal "1.11.1"]
                  [liberator "0.11.0"]
                  [compojure "1.1.6"]
