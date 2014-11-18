@@ -13,10 +13,10 @@
             [honeysql.core :as sql]
             [postal.core :as mail]
             [sauerworld.sdos.system :as system]
-            [sauerworld.sdos.config :refer (site-conf)]
             [sauerworld.sdos.core :as core]
             [sauerworld.sdos.layout :as layout]
             [sauerworld.sdos.system.database :as db]
+            [sauerworld.sdos.run :refer (dev-config)]
             [com.stuartsierra.component :as component]
             [clojure.tools.namespace.repl :refer (refresh refresh-all)]
             [net.cgrand.enlive-html :as html]
@@ -29,7 +29,7 @@
 (def system nil)
 
 (defn init []
-  (alter-var-root #'system (constantly (system/site site-conf))))
+  (alter-var-root #'system (constantly (system/site dev-config))))
 
 (defn start []
   (alter-var-root #'system component/start))
