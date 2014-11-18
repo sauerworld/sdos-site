@@ -59,8 +59,7 @@
 
 (defn find-next
   [db & [time]]
-  (let [time (or (some-> time tc/to-date)
-                 (java.util.Date.))]
+  (let [time (tc/to-timestamp (or time (now)))]
     (-> select-base
         (assoc :where [:> :start_date time]
                :order-by [[:start_date :desc]]
