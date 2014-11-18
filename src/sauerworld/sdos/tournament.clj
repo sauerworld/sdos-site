@@ -1,6 +1,5 @@
 (ns sauerworld.sdos.tournament
-  (:require [sauerworld.sdos.api :refer (request)]
-            [sauerworld.sdos.layout :refer (error-template app-page)]
+  (:require [sauerworld.sdos.layout :refer (error-template app-page)]
             [sauerworld.sdos.settings :refer (get-settings)]
             [sauerworld.sdos.system.app :as app]
             [sauerworld.sdos.models.tournaments :as tournaments]

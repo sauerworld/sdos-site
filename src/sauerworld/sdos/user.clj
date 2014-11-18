@@ -3,7 +3,6 @@
             [sauerworld.sdos.settings :refer :all]
             [sauerworld.sdos.layout :as layout]
             [sauerworld.sdos.views.user :as view]
-            [sauerworld.sdos.api :as api]
             [sauerworld.sdos.models.users :as users]
             [sauerworld.sdos.email :refer (send-email)]
             [sauerworld.sdos.system.app :as app]
