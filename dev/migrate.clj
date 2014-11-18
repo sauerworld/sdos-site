@@ -2,6 +2,7 @@
   (:require [clojure.java.io :as io]
             [clj-time.core :as tme]
             [clj-time.coerce :as tc]
+            [com.stuartsierra.component :as component]
             [honeysql.core :as sql]
             [ragtime.sql.files :as rt]
             [sauerworld.sdos.system.database :as db]
@@ -59,7 +60,9 @@
   [db]
   (let [sql-file (io/resource "schema/001-basic.sql")
         statements (rt/sql-statements (slurp sql-file))]
-    (db/do-commands db statements)))
+    (try
+      (db/do-commands db statements)
+      (catch Throwable t ()))))
 
 ;; functions to migrate individual tables from h2 to postgres
 
@@ -127,3 +130,14 @@
   (migrate-tournaments h2-db pg-db)
   (migrate-events h2-db pg-db)
   (migrate-registrations h2-db pg-db))
+
+(defn migrate-with-defaults
+  []
+  (let [h2 (-> (db/h2 {:db "db/main"})
+               db/new-database
+               component/start)
+        pg (-> (db/postgres {:db "sauerworld"
+                             :user "sauerworld"
+                             :password "sauerworld"}))]
+    (ensure-schema pg)
+    (migrate-all h2 pg)))
