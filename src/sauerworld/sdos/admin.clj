@@ -15,7 +15,7 @@
 (defn show-articles-summary
   [req]
   (let [db (:db (:app req))
-        articles (articles/get-all db)
+        articles (articles/find-all db)
         content (view/articles-summary articles)]
     (layout/app-page (get-settings req) content)))
 
@@ -40,7 +40,7 @@
 (defn edit-article-page
   [req]
   (let [id (-> req :params :id Integer/parseInt)
-        art (articles/get-by-id id (:db (:app req)))
+        art (articles/find-by-id id (:db (:app req)))
         content (view/article art true)]
     (layout/app-page (get-settings req) content)))
 
