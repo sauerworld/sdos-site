@@ -1,6 +1,7 @@
 (ns sauerworld.sdos.run
   (:require [com.stuartsierra.component :as component]
             [environ.core :refer (env)]
+            [sauerworld.sdos.config :as config]
             [sauerworld.sdos.core :as sdos]
             [sauerworld.sdos.system :as system]
             [sauerworld.sdos.system.database :as db]))
@@ -17,7 +18,7 @@
   [& args]
   (let [conf (if (:dev env)
                dev-config
-               env)
+               config/site-conf)
         sys (system/site conf)]
     (println "Starting system.")
     (component/start sys)))
