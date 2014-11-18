@@ -92,14 +92,6 @@
           (-> (page/error-page req t)
                 (render req)))))))
 
-(defn wrap-smtp-server
-  "Adds smtp server params into the request map."
-  [handler smtp-server]
-  (fn [req]
-    (-> req
-        (assoc :smtp-server smtp-server)
-        handler)))
-
 (def app (-> app-routes
              site))
 
