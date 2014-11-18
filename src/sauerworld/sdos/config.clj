@@ -38,5 +38,5 @@
 (def site-conf
   {:db db-spec
    :smtp smtp-conf
-   :site app-conf
+   :app app-conf
    :http http-server-conf})
