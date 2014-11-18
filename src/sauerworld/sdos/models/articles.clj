@@ -21,7 +21,8 @@
 
 (def ^{:private true} select-base
   {:select [:*]
-   :from [:articles]})
+   :from [:articles]
+   :order-by [[:published_date :desc]]})
 
 ;; Articles have the following fields:
 ;; id created-date published-date published? category title author content
