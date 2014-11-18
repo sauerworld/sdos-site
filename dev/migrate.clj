@@ -140,4 +140,6 @@
                              :user "sauerworld"
                              :password "sauerworld"}))]
     (ensure-schema pg)
-    (migrate-all h2 pg)))
+    (migrate-all h2 pg)
+    (component/stop h2)
+    (component/stop pg)))
