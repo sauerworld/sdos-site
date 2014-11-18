@@ -38,4 +38,5 @@
                  [sauerworld/cube2.crypto "1.0.0"]
                  [com.h2database/h2 "1.3.174"]
                  [clojurewerkz/scrypt "1.1.0"]
-                 [com.novemberain/validateur "1.7.0"]]  )
+                 [com.novemberain/validateur "1.7.0"]]
+  :main sauerworld.sdos.run)
