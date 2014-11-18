@@ -1,53 +1,97 @@
 (ns sauerworld.sdos.models.articles
-  (:require [korma.core :as k]
-            [clj-time.coerce :refer (to-date)]
+  (:require [clj-time.coerce :as tc]
             [clj-time.core :refer (now)]
-            [sauerworld.sdos.utils :refer :all]))
+            [sauerworld.sdos.model :as model]
+            [sauerworld.sdos.system.database :as db]
+            [honeysql.core :as sql]))
 
-(defn base-articles-query
-  [db]
-  (-> (k/create-entity "articles")
-      (k/database db)))
+(def ^{:private true} key-spec
+  "Spec to convert Article keys to db row."
+  {:published? :published})
 
-(defn insert-article
-  [db {:keys [date title author content category]}]
-  (let [date (or date (to-date (now)))
-        article {:date date
-                 :title title
-                 :author author
-                 :content content
-                 :category category}]
-    (-> (base-articles-query db)
-        (k/insert (k/values article)))))
+(def ^{:private true} ->db-val-spec
+  "Spec to convert Article vals to db row."
+  {:created-date tc/to-timestamp
+   :published-date tc/to-timestamp})
 
-(defn update-article
-  [db {:keys [id date title author content category]}]
-  (when id
-    (let [fields (-> {}
-                     (assoc-if date "DATE" date)
-                     (assoc-if title "TITLE" title)
-                     (assoc-if author "AUTHOR" author)
-                     (assoc-if content "CONTENT" content)
-                     (assoc-if category "CATEGORY" category))]
-      (-> (base-articles-query db)
-          (k/update
-           (k/set-fields
-            fields)
-           (k/where {:id id}))))))
+(def ^{:private true} ->article-val-spec
+  "Spec to convert db row vals to Article."
+  {:created-date tc/to-date-time
+   :published-date tc/to-date-time})
 
-(defn find-all-articles
-  [db]
-  (-> (base-articles-query db)
-      (k/select (k/order :id :DESC))))
+(def ^{:private true} select-base
+  {:select [:*]
+   :from [:articles]
+   :order-by [[:published_date :desc]]})
 
-(defn find-article
+;; Articles have the following fields:
+;; id created-date published-date published? category title author content
+
+(defn article->db
+  [article]
+  (-> article
+      (cond->
+       (not (contains? article :created-date))
+       (assoc :created-date (now)))
+      (model/->db key-spec ->db-val-spec)))
+
+(defn db->article
+  [result]
+  (model/->record result key-spec ->article-val-spec true))
+
+(defn create
+  [db article]
+  (db/write db
+            (sql/format
+             {:insert-into :articles
+              :values [(article->db article)]})))
+
+(defn find-by-id
   [db id]
-  (-> (base-articles-query db)
-      (k/select (k/where {:id id}))
-      (first)))
+    {:pre [(and (integer? id)
+                (pos? id))]}
+  (->> (sql/format
+        (assoc select-base
+          :limit 1
+          :where [:= :id id]))
+       (db/read db)
+       first
+       (db->article)))
 
-(defn find-category-articles
-  [db cat]
-  (-> (base-articles-query db)
-      (k/select (k/where {:category cat})
-                (k/order :id :DESC))))
+(defn find-by-category
+  "Find all articles in a given category."
+  [db category]
+  (->> (sql/format
+        (assoc select-base
+          :where [:= :category category]))
+       (db/read db)
+       (map db->article)))
+
+(defn find-all
+  [db]
+  (->> (sql/format select-base)
+       (db/read db)
+       (map db->article)))
+
+(defn update
+  [db article]
+  (db/write db
+            (sql/format
+             {:update :articles
+              :set (-> article
+                       article->db
+                       (dissoc :id))
+              :where [:= :id (:id article)]})))
+
+(defn delete
+  [db article-or-id]
+  {:pre [(or (and (integer? article-or-id)
+                  (pos? article-or-id))
+             (map? article-or-id))]}
+  (when-let [id (if (integer? article-or-id)
+                  article-or-id
+                  (:id article-or-id))]
+    (db/write db
+              (sql/format
+               {:delete-from :articles
+                :where [:= :id id]}))))

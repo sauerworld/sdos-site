@@ -1,135 +1,145 @@
 (ns sauerworld.sdos.models.tournaments
-  (:require [korma.core :as k]
-            [clj-time.core :refer (date-time now minus days)]
-            [clj-time.coerce :refer (to-date to-date-time)]))
+  (:require [clj-time.core :refer (now)]
+            [clj-time.coerce :as tc]
+            [sauerworld.sdos.model :as model]
+            [sauerworld.sdos.models.users :as users]
+            [sauerworld.sdos.models.events :as events]
+            [sauerworld.sdos.models.registrations :as registrations]
+            [sauerworld.sdos.system.database :as db]
+            [honeysql.core :as sql]
+            [clojure.java.jdbc :as jdbc]))
 
-(defn base-tournaments-query
-  [db]
-  (-> (k/create-entity "tournaments")
-      (k/database db)))
+(def ^{:private true} tournament-key-spec
+  "Spec to convert Tournament keys to db row."
+  {:registration-open? :registration-open})
 
-(defn base-events-query
-  [db]
-  (-> (k/create-entity "events")
-      (k/database db)))
+(def ^{:private true} tournament->db-val-spec
+  "Spec to convert Tournament vals to db row."
+  {:start-date tc/to-timestamp
+   :end-date tc/to-timestamp})
 
-(defn base-registrations-query
-  [db]
-  (-> (k/create-entity "registrations")
-      (k/database db)))
+(def ^{:private true} ->tournament-val-spec
+  {:start-date tc/to-date-time
+   :end-date tc/to-date-time})
 
-(defn insert-tournament
-  [db {:keys [name date registration-open] :as tournament}]
-  (let [registration-open (or registration-open false)
-        date (to-date date)
-        t-entity {:name name
-                  :date date
-                  :registration_open registration-open}]
-    (-> (base-tournaments-query db)
-        (k/insert
-         (k/values t-entity)))))
+(def ^{:private true} select-base
+  {:select [:*]
+   :from [:tournaments]})
 
-(defn insert-event
-  [db {:keys [tournament name team-mode]}]
-  (let [team-mode (or team-mode false)
-        tournament (if (number? tournament)
-                     (int tournament)
-                     (-> tournament :id int))]
-    (-> (base-events-query db)
-        (k/insert
-         (k/values {:name name
-                    :tournament tournament
-                    :team_mode team-mode})))))
+(defn db->tournament
+  [result]
+  (model/->record result tournament-key-spec ->tournament-val-spec true))
 
-(defn insert-registration
-  [db {:keys [event user team created]}]
-  (let [user (if (number? user)
-               (int user)
-               (-> user :id int))
-        event (if (number? event)
-                (int event)
-                (-> event :id int))
-        team (or team "")
-        created (if created
-                  (to-date created)
-                  (to-date (now)))]
-    (-> (base-registrations-query db)
-        (k/insert
-         (k/values {:event event
-                    :user user
-                    :team team
-                    :created created})))))
+(defn tournament->db
+  [tourney]
+  (model/->db tourney tournament-key-spec tournament->db-val-spec))
 
-(defn get-next-tournament
-  [db & [date]]
-  (let [date (to-date (or date (now)))]
-    (-> (base-tournaments-query db)
-        (k/select
-         (k/where {:date [> date]})
-         (k/order :date :asc))
-        first)))
+(defn create
+  [db tourney]
+  (->> {:insert-into :tournaments
+        :values [(tournament->db tourney)]}
+       sql/format
+       (db/write db)))
 
-(defn get-tournament-by-id
+(defn find-by-id
   [db id]
-  (-> (base-tournaments-query db)
-      (k/select
-       (k/where {:id id})
-       (k/limit 1))
-      first))
+  (some-> (assoc select-base :where [[:= :id id]])
+          (sql/format)
+          (db/read db)
+          first
+          (db->tournament)
+          (map db->tournament)))
 
-(defn get-current-tournament
-  [db & [date]]
-  (let [date (to-date-time (or date (now)))
-        yesterday (-> date
-                      (minus (days 1))
-                      to-date)]
-    (-> (base-tournaments-query db)
-        (k/select
-         (k/where {:date [> yesterday]})
-         (k/order :date :asc)))))
+(defn find-by-ids
+  [db ids]
+  (some->> (assoc select-base :where [[:in :id ids]])
+           (sql/format)
+           (db/read db)
+           (map db->tournament)))
 
-(defn get-tournaments
+(defn find-next
+  [db & [time]]
+  (let [time (tc/to-timestamp (or time (now)))]
+    (-> select-base
+        (assoc :where [:> :start_date time]
+               :order-by [[:start_date :desc]]
+               :limit 1)
+        (sql/format)
+        (->> (db/read db))
+        first
+        db->tournament)))
+
+(defn find-all
   [db]
-  (-> (base-tournaments-query db)
-      (k/select)))
+  (some->> select-base
+           sql/format
+           (db/read db)
+           (map db->tournament)))
 
-(defn get-tournament-events
-  [db tournament]
-  {:pre [(number? (:id tournament))]}
-  (let [id (:id tournament)]
-    (-> (base-events-query db)
-        (k/select
-         (k/where {:tournament id})))))
+(defn update
+  [db tourney]
+  (db/write db
+            (sql/format
+             {:update :tournaments
+              :set (-> tourney
+                       tournament->db
+                       (dissoc :id))
+              :where [:= :id (:id tourney)]})))
 
-(defn get-event-signups
-  [db event]
-  {:pre [(number? (:id event))]}
-  (let [id (:id event)]
-    (-> (base-registrations-query db)
-        (k/select
-         (k/where {:event id})))))
+(defn delete
+  [db tourney-or-id]
+  (let [id (if (integer? tourney-or-id)
+             tourney-or-id
+             (:id tourney-or-id))]
+    (db/write db
+              (sql/format
+               {:delete-from :tournaments
+                :where [:= :id id]}))))
 
-(defn get-tournament-signups
-  [db tournament]
-  (let [id (if (number? tournament)
-             (int tournament)
-             (-> tournament :id int))
-        events (get-tournament-events db id)
 
-        ]
-    (-> (base-registrations-query db)
-        (k/select
-         (k/join :inner
-                 (k/create-entity "events")
-                 (= :events.id :event))
-         (k/join (k/create-entity "users")
-                 (= :users.id :user))
-         (k/where {:events.tournament id})))))
 
-(defn update-team
-  [db registration team]
-  (when-let [id (:id registration)]
-    (-> (base-registrations-query db)
-        (k/update
-         (k/set-fields {"team" team})
-         (k/where {:id id})))))
+;;;
+;;; Higher-level functions, creating nested relations
+;;;
+
+(defn add-registrations-to-event
+  ([event registrations]
+     (->> registrations
+          (filter #(= (:id event) (:event-id %)) registrations)
+          (assoc event :registrations)))
+  ([event registrations users]
+     (let [users-by-id (if (map? users)
+                         users
+                         (group-by :id users))
+           maybe-add-user (fn [r] (if-let [u (get users-by-id (:user-id r))]
+                                    (assoc r :user u)
+                                    r))]
+       (cond-> (add-registrations-to-event event registrations)
+               (seq users)
+               (update-in [:registrations] (partial map maybe-add-user))))))
+
+(defn combine-tournament-entities
+  "Takes a tournament map, and optional collections of events, registrations,
+   and users, and combined into a single nested tournament map."
+  [{:keys [tournament events registrations users]}]
+  (cond-> tournament
+          events
+          (assoc :events (filter #(= (:id tournament) (:tournament-id %))))
+          registrations
+          (update-in :events (partial map #(add-registrations-to-event % registrations users)))))
+
+
+(defn get-tournament-with
+  [db id & with]
+  (let [relateds (into #{} with)
+        tourney (find-by-id db id)
+        events (when (and tourney (contains? relateds :events))
+                 (events/find-by-tournaments db tourney))
+        registrations (when (and events (contains? relateds :registrations))
+                        (registrations/find-by-events events))
+        users (when (and registrations (contains? relateds :users))
+                (users/find-ids db (map :user-id registrations)))]
+    (combine-tournament-entities {:tournament tourney
+                                  :events events
+                                  :registrations registrations
+                                  :users users})))

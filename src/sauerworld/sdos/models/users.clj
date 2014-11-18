@@ -1,9 +1,10 @@
 (ns sauerworld.sdos.models.users
-  (:require [clojurewerkz.scrypt.core :as sc]
-            [korma.core :as k]
-            [clj-time.coerce :refer (to-date)]
-            [clj-time.core :refer (now)]
-            [validateur.validation :as v])
+  (:require [clj-time.coerce :as tc]
+            [clojurewerkz.scrypt.core :as sc]
+            [honeysql.core :as sql]
+            [validateur.validation :as v]
+            [sauerworld.sdos.model :as model]
+            [sauerworld.sdos.system.database :as db])
   (:import [java.util UUID]))
 
 (defn hash-password
@@ -11,81 +12,144 @@
   (sc/encrypt pw 16384 8 1))
 
 (defn check-password
-  [pw hash]
-  (sc/verify pw hash))
+  [user pw]
+  (sc/verify pw (:password user)))
 
 (defn random-uuid
   []
   (str (java.util.UUID/randomUUID)))
 
-(defn base-users-query
-  [db]
-  (-> (k/create-entity "users")
-      (k/database db)))
+(def ^{:private true} key-spec
+  "Spec to convert User keys to db row."
+  {:validated? :validated
+   :admin? :admin})
 
-(defn insert-user
-  [db {:keys [username password email admin
-              pubkey validation-key validated created]}]
-  (let [admin (true? admin)
-        pubkey (or pubkey nil)
-        validation-key (or validation-key (random-uuid))
-        validated (or validated false)
-        password (hash-password password)
-        created (or created (to-date (now)))]
-    (-> (base-users-query db)
-        (k/insert
-         (k/values {:username username
-                    :password password
-                    :email email
-                    :validation_key validation-key
-                    :validated validated
-                    :pubkey pubkey
-                    :created created
-                    :admin admin})))))
+(def ^{:private true} ->db-val-spec
+  "Spec to convert User vals to db row."
+  {:created-date tc/to-timestamp})
 
-(defn get-by-validation-key
-  [db validation-key]
-  (let [base (base-users-query db)]
-    (-> base
-        (k/select (k/where {:validation_key validation-key}))
-        first)))
+(def ^{:private true} ->user-val-spec
+  "Spec to convert db row vals to User."
+  {:created-date tc/to-date-time})
 
-(defn set-validated
+(def ^{:private true} select-base
+  {:select [:*]
+   :from [:users]})
+
+;; User contains fields:
+;; id username password validation-key validated? pubkey created-date admin?
+
+(defn db->user
+  "Creates a user map from a database result."
+  [result]
+  (model/->record result key-spec ->user-val-spec true))
+
+(defn user->db
+  "Creates database-formatted record from a user map."
+  [user]
+  (model/->db user key-spec ->db-val-spec))
+
+(defn create
   [db user]
-  (when-let [id (:id user)]
-    (-> (base-users-query db)
-        (k/update
-         (k/set-fields {"VALIDATED" true})
-         (k/where {:id id})))))
+  (-> {:insert-into :users
+       :values [(user->db user)]}
+      sql/format
+      (->> (db/write db))))
 
-(defn get-by-username
+(defn find-one-id
+  "Gets a single user by id."
+  [db id]
+  {:pre [(integer? id)]}
+  (-> select-base
+      (assoc :where [:= :id id]
+             :limit 1)
+      sql/format
+      (->> (db/read db)
+           first
+           db->user)))
+
+(defn find-ids
+  "Gets multiple users by ids."
+  [db ids]
+  (-> select-base
+      (assoc :where [:in :id ids])
+      sql/format
+      (->> (db/read db)
+           (map db->user))))
+
+(defn find-by-id
+  "Gets user records by id. If id-or-ids is a collection, gets multiple."
+  [db id-or-ids]
+  {:pre [(and (integer? id-or-ids)
+              (pos? id-or-ids))
+         (or (coll? id-or-ids))]}
+  (if (integer? id-or-ids)
+    (find-one-id db id-or-ids)
+    (find-ids db id-or-ids)))
+
+(defn find-by-validation-key
+  [db validation-key]
+  (-> select-base
+      (assoc :where [:= :validation_key validation-key]
+             :limit 1)
+      sql/format
+      (->> (db/read db)
+           first
+           db->user)))
+
+(defn find-by-username
   [db username]
-  (-> (base-users-query db)
-      (k/select (k/where {:username username}))
-      first))
+  (-> select-base
+      (assoc :where [:= :username username]
+             :limit 1)
+      sql/format
+      (->> (db/read db)
+           first
+           db->user)))
+
+(defn find-all
+  [db]
+  (some->> (sql/format select-base)
+           (db/read db)
+           (map db->user)))
+
+(defn update
+  [db user]
+  {:pre [(:id user)]}
+  (db/write db
+            (sql/format
+             {:update :users
+              :set (-> user
+                       user->db
+                       (dissoc :id) )
+              :where [:= :id (:id user)]})))
+
+(defn update-password
+  "Updates a User record with a new password, hashing it."
+  [db id new-password]
+  (update db {:id id :password (hash-password new-password)}))
+
+(defn delete
+  [db user-or-id]
+  {:pre [(or (and (integer? user-or-id)
+                  (pos? user-or-id))
+             (map? user-or-id))]}
+  (when-let [id (if (integer? user-or-id)
+                  user-or-id
+                  (:id user-or-id))]
+    (db/write db
+              (sql/format
+               {:delete-from :users
+                :where [:= :id id]}))))
 
 (defn check-login
   [db username password]
-  (when-let [user (get-by-username db username)]
-    (when (check-password password (:password user))
+  (when-let [user (find-by-username db username)]
+    (when (check-password user password)
       user)))
 
-(defn add-pubkey
-  [db user pubkey]
-  (when-let [id (:id user)]
-    (-> (base-users-query db)
-        (k/update
-         (k/set-fields {"PUBKEY" pubkey})
-         (k/where {:id id})))))
 
-(defn update-password
-  "Updates a user's password."
-  [db user new-password]
-  (when-let [id (:id user)]
-    (-> (base-users-query db)
-        (k/update
-         (k/set-fields {"PASSWORD" (hash-password new-password)})
-         (k/where {:id id})))))
+;;; Validation
 
 (defn match-of
   "Creates validation function that specifies that two attributes must be the
@@ -127,10 +191,18 @@
    password-match
    (v/presence-of :username)
    (uniqueness-of :username #(->> %
-                                 (get-by-username db)
+                                 (find-by-username db)
                                  nil?))))
+
+(defn validate-registration
+  [db registration]
+  (-> db make-registration-validator registration))
 
 (def password-validator
   (v/validation-set
    (v/presence-of :password)
    password-match))
+
+(defn validate-password
+  [params]
+  (password-validator params))

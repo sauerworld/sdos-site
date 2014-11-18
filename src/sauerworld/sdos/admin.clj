@@ -1,6 +1,7 @@
 (ns sauerworld.sdos.admin
   (:require [sauerworld.sdos.settings :refer :all]
-            [sauerworld.sdos.api :as api]
+            [sauerworld.sdos.model :as model]
+            [sauerworld.sdos.models.articles :as articles]
             [sauerworld.sdos.views.admin :as view]
             [sauerworld.sdos.layout :as layout]))
 
@@ -13,8 +14,8 @@
 
 (defn show-articles-summary
   [req]
-  (let [db (:db req)
-        articles (api/request :articles/find-all-articles)
+  (let [db (:db (:app req))
+        articles (articles/find-all db)
         content (view/articles-summary articles)]
     (layout/app-page (get-settings req) content)))
 
@@ -26,11 +27,11 @@
 (defn do-create-article
   [req]
   (let [form (:params req)
-        article {:title (:title form)
-                 :author (:author form)
-                 :category (:category form)
-                 :content (:content form)}
-        save (api/request :articles/insert-article article)
+        art {:title (:title form)
+             :author (:author form)
+             :category (:category form)
+             :content (:content form)}
+        save (articles/create art (:db (:app req)))
         content (if save
                   "Article inserted successfully."
                   "Article failed to insert properly.")]
@@ -38,21 +39,21 @@
 
 (defn edit-article-page
   [req]
-  (let [id (-> req :params :id)
-        article (api/request :articles/find-article id)
-        content (view/article article true)]
+  (let [id (-> req :params :id Integer/parseInt)
+        art (articles/find-by-id id (:db (:app req)))
+        content (view/article art true)]
     (layout/app-page (get-settings req) content)))
 
 (defn do-edit-article
   [req]
   (let [form (:params req)
-        article {:id (:id form)
-                 :date (:date form)
-                 :title (:title form)
-                 :author (:author form)
-                 :category (:category form)
-                 :content (:content form)}
-        save (api/request :articles/update-article article)
+        art {:id (:id form)
+             :date (:date form)
+             :title (:title form)
+             :author (:author form)
+             :category (:category form)
+             :content (:content form)}
+        save (articles/update art (:db (:app req)))
         content (if save
                   "Article edited successfully."
                   "Article failed to edit properly.")]
